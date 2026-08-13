@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
+  >
+
+  <title>СОS — ТТН</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background: #e9edf2;
+      color: #172033;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    #status {
+      width: 100%;
+      padding: 24px 12px;
+      text-align: center;
+      color: #17365d;
+      font-size: 16px;
+    }
+
+    #error {
+      display: none;
+      margin: 12px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #c8d0da;
+      color: #9c0006;
+      font-size: 14px;
+    }
+
+    #document {
+      display: none;
+      width: 100%;
+      max-width: 920px;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    td,
+    th {
+      border: 1px solid #8b99a8;
+      padding: 7px 5px;
+      vertical-align: middle;
+      overflow-wrap: anywhere;
+    }
+
+    .brand {
+      width: 22%;
+      background: #17365d;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .title {
+      color: #17365d;
+      font-weight: bold;
+      text-align: center;
+      font-size: 18px;
+      padding: 10px 5px;
+    }
+
+    .meta-label {
+      width: 35%;
+      color: #17365d;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .meta-value {
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .status-cell {
+      background: #fff2cc;
+      color: #8a6500;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .section {
+      margin-top: 6px;
+    }
+
+    .section-title {
+      background: #17365d;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .label {
+      width: 31%;
+      background: #d9e7f5;
+      color: #17365d;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .value {
+      background: #ffffff;
+      font-size: 11px;
+    }
+
+    .materials th {
+      background: #17365d;
+      color: #ffffff;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .materials td {
+      font-size: 10px;
+    }
+
+    .num {
+      width: 7%;
+      text-align: center;
+    }
+
+    .name {
+      width: 43%;
+    }
+
+    .unit {
+      width: 13%;
+      text-align: center;
+    }
+
+    .qty {
+      width: 17%;
+      text-align: center;
+    }
+
+    .note {
+      width: 20%;
+    }
+
+    .summary {
+      background: #d9e7f5;
+      color: #17365d;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .signature-title {
+      background: #17365d;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .signature-body {
+      min-height: 76px;
+      padding: 8px;
+      white-space: pre-line;
+      line-height: 1.7;
+      vertical-align: top;
+      font-size: 11px;
+    }
+
+    .footer {
+      margin-top: 6px;
+      padding: 8px;
+      background: #eaf2f8;
+      color: #17365d;
+      text-align: center;
+      font-size: 9px;
+    }
+
+    @media (max-width: 600px) {
+      td,
+      th {
+        padding: 6px 4px;
+      }
+
+      .brand {
+        width: 20%;
+        font-size: 9px;
+      }
+
+      .title {
+        font-size: 15px;
+      }
+
+      .meta-label,
+      .meta-value,
+      .status-cell,
+      .label,
+      .value {
+        font-size: 11px;
+      }
+
+      .materials th {
+        font-size: 9px;
+      }
+
+      .materials td {
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="status">
+    Открываю накладную…
+  </div>
+
+  <div id="error"></div>
+
+  <main id="document">
+
+    <!-- ШАПКА -->
+    <table>
+      <tr>
+        <td class="brand" rowspan="5">
+          СОS<br>
+          CONSTRUCTION<br>
+          ECOSYSTEM
+        </td>
+
+        <td class="title" colspan="2">
+          НАКЛАДНАЯ НА ПЕРЕМЕЩЕНИЕ МАТЕРИАЛОВ
+        </td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">№ накладной</td>
+        <td class="meta-value" id="invoiceNo"></td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">Дата</td>
+        <td class="meta-value" id="date"></td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">ID</td>
+        <td class="meta-value" id="docId"></td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">Статус</td>
+        <td class="status-cell" id="invoiceStatus"></td>
+      </tr>
+    </table>
+
+
+    <!-- ПЕРЕМЕЩЕНИЕ -->
+    <table class="section">
+      <tr>
+        <td class="section-title" colspan="2">
+          ДАННЫЕ ПЕРЕМЕЩЕНИЯ
+        </td>
+      </tr>
+
+      <tr>
+        <td class="label">Тип операции</td>
+        <td class="value" id="operation"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Откуда</td>
+        <td class="value" id="from"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Куда</td>
+        <td class="value" id="to"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Дата погрузки</td>
+        <td class="value" id="loadingDate"></td>
+      </tr>
+    </table>
+
+
+    <!-- ТРАНСПОРТ -->
+    <table class="section" id="transportBlock">
+      <tr>
+        <td class="section-title" colspan="2">
+          ТРАНСПОРТ
+        </td>
+      </tr>
+
+      <tr>
+        <td class="label">Автомобиль</td>
+        <td class="value" id="vehicle"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Гос. номер</td>
+        <td class="value" id="regNo"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Водитель</td>
+        <td class="value" id="driver"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Телефон</td>
+        <td class="value" id="phone"></td>
+      </tr>
+    </table>
+
+
+    <!-- МАТЕРИАЛЫ -->
+    <table class="section materials">
+      <thead>
+        <tr>
+          <th class="num">№</th>
+          <th class="name">Наименование материала</th>
+          <th class="unit">Ед.</th>
+          <th class="qty">Количество</th>
+          <th class="note">Примечание</th>
+        </tr>
+      </thead>
+
+      <tbody id="materialsBody"></tbody>
+    </table>
+
+
+    <!-- ИТОГ -->
+    <table class="section">
+      <tr>
+        <td class="summary" id="positionCount"></td>
+        <td class="summary" id="summaryNumber"></td>
+      </tr>
+    </table>
+
+
+    <!-- ПОДПИСИ -->
+    <table class="section">
+      <tr>
+        <td class="signature-title">ОТПУСТИЛ / ПЕРЕДАЛ</td>
+      </tr>
+      <tr>
+        <td class="signature-body" id="sender"></td>
+      </tr>
+    </table>
+
+    <table class="section">
+      <tr>
+        <td class="signature-title">ПЕРЕМЕСТИЛ / ВОДИТЕЛЬ</td>
+      </tr>
+      <tr>
+        <td class="signature-body" id="mover"></td>
+      </tr>
+    </table>
+
+    <table class="section">
+      <tr>
+        <td class="signature-title">ПОЛУЧИЛ</td>
+      </tr>
+      <tr>
+        <td class="signature-body" id="receiver"></td>
+      </tr>
+    </table>
+
+    <div class="footer">
+      СОS • Электронная копия накладной
+    </div>
+
+  </main>
+
+
+  <script>
+    // (Адрес API Google Apps Script)
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbx3VgEp3RbTZ-rrKyS5B-wEXCGOS4WPNmemQXW0G85R0ZGJ8k8ReaZuVQNzCMrwSEYC/exec';
+
+    // (Получить ID накладной из QR-ссылки)
+    const params = new URLSearchParams(window.location.search);
+    const docId = (params.get('doc') || '').trim();
+
+    function setText(id, value) {
+      document.getElementById(id).textContent =
+        value == null ? '' : String(value);
+    }
+
+    function hasValue(value) {
+      return String(value == null ? '' : value).trim() !== '';
+    }
+
+    function showError(message) {
+      document.getElementById('status').style.display = 'none';
+
+      const error = document.getElementById('error');
+      error.textContent = message;
+      error.style.display = 'block';
+    }
+
+    // (Функция вызывается JSONP-ответом Apps Script)
+    window.sosReceive = function(response) {
+      if (!response || !response.ok || !response.data) {
+        showError(
+          response && response.error
+            ? response.error
+            : 'Не удалось получить данные накладной.'
+        );
+        return;
+      }
+
+      const data = response.data;
+
+      setText('invoiceNo', data.invoiceNo || '—');
+      setText('date', data.date || '');
+      setText('docId', data.docId || '');
+      setText('invoiceStatus', data.status || '');
+
+      setText('operation', data.operation || '');
+      setText('from', data.from || '');
+      setText('to', data.to || '');
+      setText('loadingDate', data.date || '');
+
+      setText('vehicle', data.vehicle || '');
+      setText('regNo', data.regNo || '');
+      setText('driver', data.driver || '');
+      setText('phone', data.phone || '');
+
+      const transportUsed =
+        hasValue(data.vehicle) ||
+        hasValue(data.regNo) ||
+        hasValue(data.driver) ||
+        hasValue(data.phone);
+
+      if (!transportUsed) {
+        document.getElementById('transportBlock').style.display = 'none';
+      }
+
+      const items = Array.isArray(data.materials)
+        ? data.materials
+        : [];
+
+      const tbody = document.getElementById('materialsBody');
+      tbody.textContent = '';
+
+      if (items.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+
+        td.colSpan = 5;
+        td.textContent = 'Материалы не указаны';
+        td.style.textAlign = 'center';
+
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        items.forEach(function(item, index) {
+          const tr = document.createElement('tr');
+
+          [
+            item.no || (index + 1),
+            item.name || '',
+            item.unit || '',
+            item.qty || '',
+            item.note || ''
+          ].forEach(function(value, columnIndex) {
+            const td = document.createElement('td');
+            td.textContent = String(value);
+
+            if (columnIndex === 0 ||
+                columnIndex === 2 ||
+                columnIndex === 3) {
+              td.style.textAlign = 'center';
+            }
+
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      setText(
+        'positionCount',
+        'Всего позиций: ' +
+        String(data.positionCount || items.length || 0)
+      );
+
+      setText(
+        'summaryNumber',
+        'Номер документа: ' +
+        String(data.invoiceNo || '—')
+      );
+
+      setText('sender', data.sender || '');
+      setText('mover', data.mover || '');
+      setText('receiver', data.receiver || '');
+
+      document.title =
+        'СОS — ' + String(data.invoiceNo || 'ТТН');
+
+      document.getElementById('status').style.display = 'none';
+      document.getElementById('document').style.display = 'block';
+    };
+
+    if (!docId) {
+      showError('В ссылке отсутствует ID накладной.');
+    } else {
+      // (Запросить данные через JSONP)
+      const script = document.createElement('script');
+
+      script.src =
+        API_BASE +
+        '?doc=' + encodeURIComponent(docId) +
+        '&callback=sosReceive' +
+        '&_=' + Date.now();
+
+      script.onerror = function() {
+        showError('Не удалось связаться с сервером СОS.');
+      };
+
+      document.body.appendChild(script);
+    }
+  </script>
+
+</body>
+</html>
