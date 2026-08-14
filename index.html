@@ -55,6 +55,35 @@
       background: #ffffff;
     }
 
+    #cancelBanner {
+      display: none;
+      margin: 0;
+      padding: 14px 12px;
+      background: #b00020;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      line-height: 1.45;
+      border-bottom: 3px solid #7a0016;
+    }
+
+    #cancelBanner .cancel-title {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    #cancelBanner .cancel-details {
+      display: block;
+      font-size: 12px;
+      font-weight: normal;
+    }
+
+    .status-cell.canceled {
+      background: #f8d7da;
+      color: #9c0006;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -275,6 +304,11 @@
   <div id="error"></div>
 
   <main id="document">
+
+    <div id="cancelBanner">
+      <span class="cancel-title">⚠ НАКЛАДНАЯ ОТМЕНЕНА</span>
+      <span class="cancel-details" id="cancelDetails"></span>
+    </div>
 
     <!-- ШАПКА -->
     <table>
@@ -502,6 +536,36 @@
       setText('date', data.date || '');
       setText('docId', data.docId || '');
       setText('invoiceStatus', data.status || '');
+
+      const normalizedStatus = String(data.status || '').trim().toUpperCase();
+      const cancelBanner = document.getElementById('cancelBanner');
+      const invoiceStatusCell = document.getElementById('invoiceStatus');
+
+      if (normalizedStatus === 'ОТМЕНЕНА') {
+        cancelBanner.style.display = 'block';
+        invoiceStatusCell.classList.add('canceled');
+
+        const cancellation = data.cancellation || {};
+        const parts = [];
+
+        if (hasValue(cancellation.canceledAt)) {
+          parts.push('Дата отмены: ' + cancellation.canceledAt);
+        }
+
+        if (hasValue(cancellation.userName)) {
+          parts.push('Отменил: ' + cancellation.userName);
+        }
+
+        if (hasValue(cancellation.reason)) {
+          parts.push('Причина: ' + cancellation.reason);
+        }
+
+        setText('cancelDetails', parts.join(' • '));
+      } else {
+        cancelBanner.style.display = 'none';
+        invoiceStatusCell.classList.remove('canceled');
+        setText('cancelDetails', '');
+      }
 
       setText('operation', data.operation || '');
       setText('from', data.from || '');
