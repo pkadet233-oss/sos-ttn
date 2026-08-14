@@ -189,6 +189,40 @@
       font-size: 11px;
     }
 
+    .sender-signature-layout {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sender-signature-text {
+      flex: 1 1 180px;
+      white-space: pre-line;
+    }
+
+    .sender-images {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      min-height: 70px;
+    }
+
+    .sender-signature-image {
+      display: none;
+      max-width: 150px;
+      max-height: 58px;
+      object-fit: contain;
+    }
+
+    .sender-stamp-image {
+      display: none;
+      max-width: 100px;
+      max-height: 100px;
+      object-fit: contain;
+    }
+
     .footer {
       margin-top: 6px;
       padding: 8px;
@@ -369,7 +403,23 @@
         <td class="signature-title">ОТПУСТИЛ / ПЕРЕДАЛ</td>
       </tr>
       <tr>
-        <td class="signature-body" id="sender"></td>
+        <td class="signature-body">
+          <div class="sender-signature-layout">
+            <div class="sender-signature-text" id="sender"></div>
+            <div class="sender-images" id="senderImages">
+              <img
+                id="senderSignatureImage"
+                class="sender-signature-image"
+                alt="Подпись"
+              >
+              <img
+                id="senderStampImage"
+                class="sender-stamp-image"
+                alt="Печать"
+              >
+            </div>
+          </div>
+        </td>
       </tr>
     </table>
 
@@ -413,6 +463,18 @@
 
     function hasValue(value) {
       return String(value == null ? '' : value).trim() !== '';
+    }
+
+    function setImage(id, dataUrl) {
+      const image = document.getElementById(id);
+
+      if (hasValue(dataUrl)) {
+        image.src = String(dataUrl);
+        image.style.display = 'block';
+      } else {
+        image.removeAttribute('src');
+        image.style.display = 'none';
+      }
     }
 
     function showError(message) {
@@ -520,6 +582,16 @@
       setText('sender', data.sender || '');
       setText('mover', data.mover || '');
       setText('receiver', data.receiver || '');
+
+      setImage(
+        'senderSignatureImage',
+        data.senderSignatureImage || ''
+      );
+
+      setImage(
+        'senderStampImage',
+        data.senderStampImage || ''
+      );
 
       document.title =
         'СОS — ' + String(data.invoiceNo || 'ТТН');
