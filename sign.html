@@ -454,11 +454,6 @@
     </main>
   </div>
 
-  <iframe
-    id="signSubmitFrame"
-    name="signSubmitFrame"
-    title="Служебная отправка подписи"
-  ></iframe>
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbwDeaPRSxOJC6AtNBkNYyWMYzczn3wROHMoU2oTEKBs6tCphP79evdPP-YNRitb-8oh/exec';
@@ -921,7 +916,7 @@
     }
 
 
-    function submitSignature() {
+    async function submitSignature() {
       const name =
         document
           .getElementById('signerName')
@@ -970,37 +965,117 @@
       button.disabled = true;
       button.textContent = 'Сохраняем...';
 
-      const form =
-        document.createElement('form');
+      showMessage(
+        'Отправляем подпись в СОS...',
+        'info'
+      );
 
-      form.method = 'POST';
-      form.action = API_URL;
-      form.target = 'signSubmitFrame';
-      form.style.display = 'none';
+      try {
+        const body = new URLSearchParams();
 
-      const fields = {
-        action: 'signSubmitForm',
-        t: SIGN_TOKEN,
-        v: verificationToken,
-        name: name,
-        signatureDataUrl:
+        body.set(
+          'action',
+          'signSubmitForm'
+        );
+
+        body.set(
+          't',
+          SIGN_TOKEN
+        );
+
+        body.set(
+          'v',
+          verificationToken
+        );
+
+        body.set(
+          'name',
+          name
+        );
+
+        body.set(
+          'signatureDataUrl',
           canvas.toDataURL('image/png')
+        );
+
+        // (Ответ читать не требуется: Apps Script находится на другом домене.
+        // После отправки проверяем статус подписи через JSONP.)
+        await fetch(
+          API_URL,
+          {
+            method: 'POST',
+            mode: 'no-cors',
+            body: body
+          }
+        );
+
+        const signedResult =
+          await waitUntilSigned();
+
+        if (!signedResult.ok) {
+          throw new Error(
+            signedResult.error ||
+            'Сервер не подтвердил сохранение подписи.'
+          );
+        }
+
+        showSigned(
+          signedResult.signedName ||
+          name
+        );
+
+        showMessage(
+          'Подпись успешно сохранена в СОS.',
+          'success'
+        );
+
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = 'ПОДПИСАТЬ';
+
+        showMessage(
+          error && error.message
+            ? error.message
+            : String(error),
+          'error'
+        );
+      }
+    }
+
+
+    async function waitUntilSigned() {
+      // (До 30 секунд проверять, что сервер действительно записал PNG и журнал)
+
+      const startedAt = Date.now();
+
+      while (
+        Date.now() - startedAt < 30000
+      ) {
+        await new Promise(function(resolve) {
+          setTimeout(resolve, 1200);
+        });
+
+        try {
+          const result =
+            await jsonp('signContext');
+
+          if (
+            result &&
+            result.ok &&
+            result.signed
+          ) {
+            return result;
+          }
+        } catch (error) {
+          // (Кратковременную ошибку сети игнорировать и повторить проверку)
+        }
+      }
+
+      return {
+        ok: false,
+        error:
+          'Подпись отправлена, но подтверждение сервера не получено. Обновите страницу и проверьте статус.'
       };
-
-      Object.keys(fields).forEach(function(key) {
-        const input =
-          document.createElement('input');
-
-        input.type = 'hidden';
-        input.name = key;
-        input.value = fields[key];
-
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
-      form.remove();
     }
 
 
@@ -1022,53 +1097,6 @@
     }
 
 
-    window.addEventListener(
-      'message',
-      function(event) {
-        const allowedOrigin =
-          event.origin === 'https://script.google.com' ||
-          event.origin === 'https://script.googleusercontent.com';
-
-        if (
-          !allowedOrigin ||
-          !event.data ||
-          event.data.source !== 'SOS_SIGN_RESULT'
-        ) {
-          return;
-        }
-
-        const result =
-          event.data.result || {};
-
-        const button =
-          document.getElementById('signBtn');
-
-        button.disabled = false;
-        button.textContent = 'ПОДПИСАТЬ';
-
-        if (!result.ok) {
-          showMessage(
-            result.error ||
-              'Не удалось сохранить подпись.',
-            'error'
-          );
-          return;
-        }
-
-        const name =
-          document
-            .getElementById('signerName')
-            .value
-            .trim();
-
-        showSigned(name);
-
-        showMessage(
-          'Подпись успешно сохранена в СОS.',
-          'success'
-        );
-      }
-    );
 
 
     window.addEventListener(
