@@ -275,6 +275,45 @@
       object-fit: contain;
     }
 
+    .remote-signature-block {
+      display: none;
+      width: 100%;
+      margin-top: 8px;
+      padding-top: 7px;
+      border-top: 1px dashed #9eb6ce;
+    }
+
+    .remote-signature-content {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .remote-signature-meta {
+      flex: 1 1 180px;
+      color: #18723a;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .remote-signature-image {
+      display: none;
+      max-width: 180px;
+      max-height: 72px;
+      object-fit: contain;
+    }
+
+    .electronic-confirmed {
+      margin-top: 5px;
+      color: #18723a;
+      font-size: 9px;
+      font-weight: bold;
+    }
+
     .footer {
       margin-top: 6px;
       padding: 8px;
@@ -620,6 +659,24 @@
               >
             </div>
           </div>
+
+          <div
+            id="senderRemoteSignatureBlock"
+            class="remote-signature-block"
+          >
+            <div class="remote-signature-content">
+              <div
+                id="senderRemoteSignatureMeta"
+                class="remote-signature-meta"
+              ></div>
+
+              <img
+                id="senderRemoteSignatureImage"
+                class="remote-signature-image"
+                alt="Электронная подпись отпустившего"
+              >
+            </div>
+          </div>
         </td>
       </tr>
     </table>
@@ -629,7 +686,27 @@
         <td class="signature-title">ПЕРЕМЕСТИЛ / ВОДИТЕЛЬ</td>
       </tr>
       <tr>
-        <td class="signature-body" id="mover"></td>
+        <td class="signature-body">
+          <div id="mover"></div>
+
+          <div
+            id="driverRemoteSignatureBlock"
+            class="remote-signature-block"
+          >
+            <div class="remote-signature-content">
+              <div
+                id="driverRemoteSignatureMeta"
+                class="remote-signature-meta"
+              ></div>
+
+              <img
+                id="driverRemoteSignatureImage"
+                class="remote-signature-image"
+                alt="Электронная подпись водителя"
+              >
+            </div>
+          </div>
+        </td>
       </tr>
     </table>
 
@@ -638,7 +715,27 @@
         <td class="signature-title">ПОЛУЧИЛ</td>
       </tr>
       <tr>
-        <td class="signature-body" id="receiver"></td>
+        <td class="signature-body">
+          <div id="receiver"></div>
+
+          <div
+            id="receiverRemoteSignatureBlock"
+            class="remote-signature-block"
+          >
+            <div class="remote-signature-content">
+              <div
+                id="receiverRemoteSignatureMeta"
+                class="remote-signature-meta"
+              ></div>
+
+              <img
+                id="receiverRemoteSignatureImage"
+                class="remote-signature-image"
+                alt="Электронная подпись получателя"
+              >
+            </div>
+          </div>
+        </td>
       </tr>
     </table>
 
@@ -727,6 +824,84 @@
         }, 300);
       });
     }
+
+    function setRemoteSignature(
+      roleKey,
+      signature,
+      fallbackImage,
+      fallbackName,
+      fallbackSignedAt
+    ) {
+      const block =
+        document.getElementById(
+          roleKey + 'RemoteSignatureBlock'
+        );
+
+      const meta =
+        document.getElementById(
+          roleKey + 'RemoteSignatureMeta'
+        );
+
+      const imageId =
+        roleKey + 'RemoteSignatureImage';
+
+      const data =
+        signature || {};
+
+      const signed =
+        Boolean(data.signed) ||
+        hasValue(fallbackImage) ||
+        hasValue(fallbackName);
+
+      if (!signed) {
+        block.style.display = 'none';
+        setImage(imageId, '');
+        meta.textContent = '';
+        return;
+      }
+
+      const signerName =
+        data.signerName ||
+        fallbackName ||
+        '';
+
+      const signedAt =
+        data.signedAt ||
+        fallbackSignedAt ||
+        '';
+
+      const imageDataUrl =
+        data.imageDataUrl ||
+        fallbackImage ||
+        '';
+
+      const lines = [
+        'ЭЛЕКТРОННО ПОДПИСАНО'
+      ];
+
+      if (hasValue(signerName)) {
+        lines.push(
+          'ФИО: ' + signerName
+        );
+      }
+
+      if (hasValue(signedAt)) {
+        lines.push(
+          'Дата: ' + signedAt
+        );
+      }
+
+      meta.textContent =
+        lines.join('\n');
+
+      setImage(
+        imageId,
+        imageDataUrl
+      );
+
+      block.style.display = 'block';
+    }
+
 
     function showError(message) {
       document.getElementById('status').style.display = 'none';
@@ -873,6 +1048,33 @@
       setImage(
         'senderStampImage',
         data.senderStampImage || ''
+      );
+
+      const remoteSignatures =
+        data.remoteSignatures || {};
+
+      setRemoteSignature(
+        'sender',
+        remoteSignatures.sender,
+        data.senderRemoteSignatureImage || '',
+        data.senderRemoteSignerName || '',
+        data.senderRemoteSignedAt || ''
+      );
+
+      setRemoteSignature(
+        'driver',
+        remoteSignatures.driver,
+        data.driverRemoteSignatureImage || '',
+        data.driverRemoteSignerName || '',
+        data.driverRemoteSignedAt || ''
+      );
+
+      setRemoteSignature(
+        'receiver',
+        remoteSignatures.receiver,
+        data.receiverRemoteSignatureImage || '',
+        data.receiverRemoteSignerName || '',
+        data.receiverRemoteSignedAt || ''
       );
 
       document.title =
