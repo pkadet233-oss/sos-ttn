@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <meta name="theme-color" content="#173f70">
+
+  <title>СОS — Подписание накладной</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #14263d;
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .app {
+      width: 100vw;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: #ffffff;
+    }
+
+    .header {
+      width: 100%;
+      padding:
+        max(16px, env(safe-area-inset-top))
+        16px
+        16px;
+      background: #173f70;
+      color: #ffffff;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .header-title {
+      font-size: 23px;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .header-subtitle {
+      margin-top: 5px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .fullscreen-btn {
+      width: auto;
+      min-width: 42px;
+      min-height: 42px;
+      margin: 0;
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 8px;
+      background: transparent;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .content {
+      width: 100%;
+      padding:
+        16px
+        16px
+        max(22px, env(safe-area-inset-bottom));
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 35% 65%;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 0;
+      border-bottom: 1px solid #e0e6ed;
+      font-size: 16px;
+    }
+
+    .label {
+      color: #66768a;
+    }
+
+    .value {
+      min-width: 0;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .section {
+      margin-top: 22px;
+    }
+
+    .section-title {
+      margin-bottom: 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    input[type="tel"] {
+      display: block;
+      width: 100%;
+      min-height: 58px;
+      padding: 12px 14px;
+      border: 1px solid #b7c6d7;
+      border-radius: 10px;
+      background: #ffffff;
+      color: #14263d;
+      font-size: 20px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #173f70;
+      box-shadow: 0 0 0 2px rgba(23,63,112,0.10);
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      min-height: 60px;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 10px;
+      background: #173f70;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e8eef5;
+      color: #173f70;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+    }
+
+    .notice {
+      display: none;
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 9px;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .notice.info {
+      display: block;
+      background: #e8f1fb;
+      color: #173f70;
+    }
+
+    .notice.error {
+      display: block;
+      background: #ffe5e5;
+      color: #a00000;
+    }
+
+    .notice.success {
+      display: block;
+      background: #e5f6e9;
+      color: #126b2b;
+    }
+
+    .test-code {
+      display: none;
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      border: 2px dashed #d79b00;
+      border-radius: 9px;
+      background: #fff7d6;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    #signatureSection {
+      display: none;
+    }
+
+    .canvas-wrap {
+      width: 100%;
+      height: 250px;
+      border: 2px solid #173f70;
+      border-radius: 10px;
+      background: #ffffff;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .confirm-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 14px;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .confirm-line input {
+      width: 22px;
+      height: 22px;
+      margin-top: 1px;
+      flex: 0 0 auto;
+    }
+
+    .signed {
+      display: none;
+      padding: 36px 8px;
+      text-align: center;
+    }
+
+    .signed-icon {
+      color: #148238;
+      font-size: 58px;
+      font-weight: 700;
+    }
+
+    .signed-title {
+      margin-top: 8px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .signed-text {
+      margin-top: 10px;
+      color: #66768a;
+      font-size: 17px;
+    }
+
+    .loading {
+      display: block;
+      margin: 14px 0;
+      padding: 14px;
+      border-radius: 9px;
+      background: #e8f1fb;
+      color: #173f70;
+      font-size: 16px;
+    }
+
+    iframe {
+      display: none;
+    }
+
+    @media (min-width: 760px) {
+      .content {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      .header > div {
+        max-width: 760px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="header">
+      <div>
+        <div class="header-row">
+          <div class="header-title">
+            СОS — Подписание накладной
+          </div>
+
+          <button
+            class="fullscreen-btn"
+            type="button"
+            onclick="enterFullscreen()"
+          >
+            ⛶
+          </button>
+        </div>
+
+        <div class="header-subtitle">
+          Электронное подтверждение внутренней ТТН
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <div id="loading" class="loading">
+        Загружаем данные накладной...
+      </div>
+
+      <div id="mainContent" style="display:none;">
+        <div class="row">
+          <div class="label">Накладная</div>
+          <div class="value" id="invoiceNo">—</div>
+        </div>
+
+        <div class="row">
+          <div class="label">ID</div>
+          <div class="value" id="docId">—</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Ваша роль</div>
+          <div class="value" id="roleTitle">—</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Телефон</div>
+          <div class="value" id="phoneMasked">—</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Откуда</div>
+          <div class="value" id="from">—</div>
+        </div>
+
+        <div class="row">
+          <div class="label">Куда</div>
+          <div class="value" id="to">—</div>
+        </div>
+
+        <div id="workflow">
+          <section class="section">
+            <div class="section-title">
+              1. ФИО подписывающего
+            </div>
+
+            <input
+              id="signerName"
+              type="text"
+              autocomplete="name"
+              placeholder="Введите ФИО"
+            >
+          </section>
+
+          <section class="section">
+            <div class="section-title">
+              2. Подтверждение телефона
+            </div>
+
+            <button
+              id="requestOtpBtn"
+              type="button"
+              onclick="requestOtp()"
+            >
+              Получить код
+            </button>
+
+            <div id="testOtp" class="test-code"></div>
+
+            <input
+              id="otpInput"
+              type="tel"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="6-значный код"
+              style="margin-top:12px;"
+            >
+
+            <button
+              id="confirmOtpBtn"
+              type="button"
+              onclick="confirmOtp()"
+            >
+              Подтвердить код
+            </button>
+          </section>
+
+          <section id="signatureSection" class="section">
+            <div class="section-title">
+              3. Подпись
+            </div>
+
+            <div class="canvas-wrap">
+              <canvas id="signatureCanvas"></canvas>
+            </div>
+
+            <button
+              class="secondary"
+              type="button"
+              onclick="clearSignature()"
+            >
+              Очистить подпись
+            </button>
+
+            <label class="confirm-line">
+              <input id="confirmCheck" type="checkbox">
+
+              <span>
+                Подтверждаю, что ознакомился с данными накладной
+                и ставлю подпись от своего имени.
+              </span>
+            </label>
+
+            <button
+              id="signBtn"
+              type="button"
+              onclick="submitSignature()"
+            >
+              ПОДПИСАТЬ
+            </button>
+          </section>
+        </div>
+
+        <div id="signedBox" class="signed">
+          <div class="signed-icon">✓</div>
+
+          <div class="signed-title">
+            Накладная подписана
+          </div>
+
+          <div class="signed-text" id="signedText"></div>
+        </div>
+      </div>
+
+      <div id="message" class="notice"></div>
+    </main>
+  </div>
+
+  <iframe
+    id="signSubmitFrame"
+    name="signSubmitFrame"
+    title="Служебная отправка подписи"
+  ></iframe>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwDeaPRSxOJC6AtNBkNYyWMYzczn3wROHMoU2oTEKBs6tCphP79evdPP-YNRitb-8oh/exec';
+
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
+    const SIGN_TOKEN = String(
+      params.get('t') || ''
+    ).trim();
+
+    let verificationToken = '';
+    let canvas;
+    let ctx;
+    let drawing = false;
+    let hasSignature = false;
+
+
+    function enterFullscreen() {
+      // (Браузер разрешает полноэкранный режим только после действия пользователя)
+      const element = document.documentElement;
+
+      if (document.fullscreenElement) {
+        return;
+      }
+
+      if (element.requestFullscreen) {
+        element.requestFullscreen().catch(function() {});
+      }
+    }
+
+
+    function showMessage(text, type) {
+      const box = document.getElementById('message');
+
+      box.textContent = text || '';
+      box.className = 'notice ' + (type || 'info');
+    }
+
+
+    function setText(id, value) {
+      document.getElementById(id).textContent =
+        value || '—';
+    }
+
+
+    function jsonp(action, extraParams) {
+      // (JSONP позволяет GitHub Pages безопасно читать публичный Apps Script API)
+      return new Promise(function(resolve, reject) {
+        const callbackName =
+          'sosCallback_' +
+          Date.now() +
+          '_' +
+          Math.floor(Math.random() * 100000);
+
+        const script = document.createElement('script');
+
+        const query = new URLSearchParams(
+          Object.assign(
+            {
+              action: action,
+              t: SIGN_TOKEN,
+              callback: callbackName
+            },
+            extraParams || {}
+          )
+        );
+
+        const timeout = setTimeout(function() {
+          cleanup();
+          reject(new Error('Сервер не ответил вовремя.'));
+        }, 20000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+
+          try {
+            delete window[callbackName];
+          } catch (e) {
+            window[callbackName] = undefined;
+          }
+
+          if (script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+        }
+
+        window[callbackName] = function(result) {
+          cleanup();
+          resolve(result);
+        };
+
+        script.onerror = function() {
+          cleanup();
+          reject(new Error('Не удалось связаться с сервером СОS.'));
+        };
+
+        script.src =
+          API_URL +
+          '?' +
+          query.toString();
+
+        document.body.appendChild(script);
+      });
+    }
+
+
+    async function loadContext() {
+      if (!SIGN_TOKEN) {
+        document.getElementById('loading').style.display = 'none';
+        showMessage('В ссылке отсутствует токен подписания.', 'error');
+        return;
+      }
+
+      try {
+        const result = await jsonp(
+          'signContext'
+        );
+
+        document.getElementById('loading').style.display = 'none';
+
+        if (!result || !result.ok) {
+          showMessage(
+            result && result.error
+              ? result.error
+              : 'Не удалось открыть ссылку.',
+            'error'
+          );
+          return;
+        }
+
+        document.getElementById('mainContent').style.display = 'block';
+
+        setText('invoiceNo', result.invoiceNo);
+        setText('docId', result.docId);
+        setText('roleTitle', result.roleTitle);
+        setText('phoneMasked', result.phoneMasked);
+        setText('from', result.from);
+        setText('to', result.to);
+
+        document.getElementById('signerName').value =
+          result.signedName ||
+          result.expectedName ||
+          '';
+
+        if (result.signed) {
+          showSigned(
+            result.signedName ||
+            result.expectedName ||
+            ''
+          );
+        }
+      } catch (error) {
+        document.getElementById('loading').style.display = 'none';
+
+        showMessage(
+          error && error.message
+            ? error.message
+            : String(error),
+          'error'
+        );
+      }
+    }
+
+
+    async function requestOtp() {
+      // (Первый осознанный тап можно использовать для полноэкранного режима)
+      enterFullscreen();
+
+      const button =
+        document.getElementById('requestOtpBtn');
+
+      button.disabled = true;
+      button.textContent = 'Отправляем...';
+
+      try {
+        const result = await jsonp(
+          'signRequestOtp'
+        );
+
+        button.disabled = false;
+        button.textContent = 'Получить новый код';
+
+        if (!result || !result.ok) {
+          showMessage(
+            result && result.error
+              ? result.error
+              : 'Не удалось получить код.',
+            'error'
+          );
+          return;
+        }
+
+        showMessage(
+          'Код подтверждения создан. Срок действия — 5 минут.',
+          'info'
+        );
+
+        if (
+          result.smsMode === 'TEST' &&
+          result.testOtp
+        ) {
+          const testBox =
+            document.getElementById('testOtp');
+
+          testBox.style.display = 'block';
+          testBox.textContent =
+            'ТЕСТОВЫЙ OTP: ' +
+            result.testOtp;
+        }
+
+        document.getElementById('otpInput').focus();
+
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = 'Получить код';
+
+        showMessage(
+          error && error.message
+            ? error.message
+            : String(error),
+          'error'
+        );
+      }
+    }
+
+
+    async function confirmOtp() {
+      const otp =
+        document
+          .getElementById('otpInput')
+          .value
+          .replace(/\D/g, '');
+
+      if (otp.length !== 6) {
+        showMessage(
+          'Введите шестизначный код.',
+          'error'
+        );
+        return;
+      }
+
+      try {
+        const result = await jsonp(
+          'signConfirmOtp',
+          { otp: otp }
+        );
+
+        if (!result || !result.ok) {
+          showMessage(
+            result && result.error
+              ? result.error
+              : 'Код не подтверждён.',
+            'error'
+          );
+          return;
+        }
+
+        verificationToken =
+          result.verificationToken || '';
+
+        document.getElementById(
+          'signatureSection'
+        ).style.display = 'block';
+
+        document.getElementById(
+          'testOtp'
+        ).style.display = 'none';
+
+        showMessage(
+          'Телефон подтверждён. Поставьте подпись пальцем.',
+          'success'
+        );
+
+        setTimeout(resizeCanvas, 50);
+
+        document
+          .getElementById('signatureSection')
+          .scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+
+      } catch (error) {
+        showMessage(
+          error && error.message
+            ? error.message
+            : String(error),
+          'error'
+        );
+      }
+    }
+
+
+    function initCanvas() {
+      canvas =
+        document.getElementById('signatureCanvas');
+
+      ctx =
+        canvas.getContext('2d');
+
+      canvas.addEventListener(
+        'pointerdown',
+        startDraw
+      );
+
+      canvas.addEventListener(
+        'pointermove',
+        draw
+      );
+
+      canvas.addEventListener(
+        'pointerup',
+        stopDraw
+      );
+
+      canvas.addEventListener(
+        'pointercancel',
+        stopDraw
+      );
+
+      window.addEventListener(
+        'resize',
+        function() {
+          if (
+            document.getElementById(
+              'signatureSection'
+            ).style.display !== 'none'
+          ) {
+            resizeCanvas();
+          }
+        }
+      );
+    }
+
+
+    function resizeCanvas() {
+      if (!canvas) {
+        return;
+      }
+
+      const rect =
+        canvas.parentElement.getBoundingClientRect();
+
+      const ratio =
+        Math.max(
+          window.devicePixelRatio || 1,
+          1
+        );
+
+      canvas.width =
+        Math.floor(rect.width * ratio);
+
+      canvas.height =
+        Math.floor(rect.height * ratio);
+
+      ctx.setTransform(
+        ratio,
+        0,
+        0,
+        ratio,
+        0,
+        0
+      );
+
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#173f70';
+
+      hasSignature = false;
+    }
+
+
+    function pointFromEvent(event) {
+      const rect =
+        canvas.getBoundingClientRect();
+
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+
+    function startDraw(event) {
+      drawing = true;
+      hasSignature = true;
+
+      const point =
+        pointFromEvent(event);
+
+      ctx.beginPath();
+      ctx.moveTo(
+        point.x,
+        point.y
+      );
+
+      try {
+        canvas.setPointerCapture(
+          event.pointerId
+        );
+      } catch (e) {}
+
+      event.preventDefault();
+    }
+
+
+    function draw(event) {
+      if (!drawing) {
+        return;
+      }
+
+      const point =
+        pointFromEvent(event);
+
+      ctx.lineTo(
+        point.x,
+        point.y
+      );
+
+      ctx.stroke();
+
+      event.preventDefault();
+    }
+
+
+    function stopDraw(event) {
+      if (!drawing) {
+        return;
+      }
+
+      drawing = false;
+      ctx.closePath();
+
+      try {
+        canvas.releasePointerCapture(
+          event.pointerId
+        );
+      } catch (e) {}
+
+      event.preventDefault();
+    }
+
+
+    function clearSignature() {
+      if (!canvas || !ctx) {
+        return;
+      }
+
+      ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      hasSignature = false;
+    }
+
+
+    function submitSignature() {
+      const name =
+        document
+          .getElementById('signerName')
+          .value
+          .trim();
+
+      if (name.length < 3) {
+        showMessage(
+          'Введите ФИО.',
+          'error'
+        );
+        return;
+      }
+
+      if (!verificationToken) {
+        showMessage(
+          'Сначала подтвердите OTP.',
+          'error'
+        );
+        return;
+      }
+
+      if (!hasSignature) {
+        showMessage(
+          'Нарисуйте подпись пальцем.',
+          'error'
+        );
+        return;
+      }
+
+      if (
+        !document.getElementById(
+          'confirmCheck'
+        ).checked
+      ) {
+        showMessage(
+          'Поставьте отметку подтверждения.',
+          'error'
+        );
+        return;
+      }
+
+      const button =
+        document.getElementById('signBtn');
+
+      button.disabled = true;
+      button.textContent = 'Сохраняем...';
+
+      const form =
+        document.createElement('form');
+
+      form.method = 'POST';
+      form.action = API_URL;
+      form.target = 'signSubmitFrame';
+      form.style.display = 'none';
+
+      const fields = {
+        action: 'signSubmitForm',
+        t: SIGN_TOKEN,
+        v: verificationToken,
+        name: name,
+        signatureDataUrl:
+          canvas.toDataURL('image/png')
+      };
+
+      Object.keys(fields).forEach(function(key) {
+        const input =
+          document.createElement('input');
+
+        input.type = 'hidden';
+        input.name = key;
+        input.value = fields[key];
+
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+      form.remove();
+    }
+
+
+    function showSigned(name) {
+      document.getElementById(
+        'workflow'
+      ).style.display = 'none';
+
+      document.getElementById(
+        'signedBox'
+      ).style.display = 'block';
+
+      document.getElementById(
+        'signedText'
+      ).textContent =
+        name
+          ? 'Подписал: ' + name
+          : 'Подтверждение сохранено.';
+    }
+
+
+    window.addEventListener(
+      'message',
+      function(event) {
+        const allowedOrigin =
+          event.origin === 'https://script.google.com' ||
+          event.origin === 'https://script.googleusercontent.com';
+
+        if (
+          !allowedOrigin ||
+          !event.data ||
+          event.data.source !== 'SOS_SIGN_RESULT'
+        ) {
+          return;
+        }
+
+        const result =
+          event.data.result || {};
+
+        const button =
+          document.getElementById('signBtn');
+
+        button.disabled = false;
+        button.textContent = 'ПОДПИСАТЬ';
+
+        if (!result.ok) {
+          showMessage(
+            result.error ||
+              'Не удалось сохранить подпись.',
+            'error'
+          );
+          return;
+        }
+
+        const name =
+          document
+            .getElementById('signerName')
+            .value
+            .trim();
+
+        showSigned(name);
+
+        showMessage(
+          'Подпись успешно сохранена в СОS.',
+          'success'
+        );
+      }
+    );
+
+
+    window.addEventListener(
+      'load',
+      function() {
+        initCanvas();
+        loadContext();
+      }
+    );
+  </script>
+</body>
+</html>
