@@ -108,6 +108,29 @@
       line-height: 1.25;
     }
 
+    .qr-cell {
+      width: 20%;
+      padding: 5px;
+      text-align: center;
+      vertical-align: middle;
+      background: #ffffff;
+    }
+
+    .qr-image {
+      display: block;
+      width: 105px;
+      height: 105px;
+      margin: 0 auto 3px;
+      object-fit: contain;
+    }
+
+    .qr-note {
+      color: #17365d;
+      font-size: 8px;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
     .title {
       color: #17365d;
       font-weight: bold;
@@ -261,6 +284,37 @@
       font-size: 9px;
     }
 
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+
+      html,
+      body {
+        background: #ffffff !important;
+      }
+
+      *,
+      *::before,
+      *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      #document {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+      }
+
+      #status,
+      #error {
+        display: none !important;
+      }
+    }
+
     @media (max-width: 600px) {
       td,
       th {
@@ -321,6 +375,15 @@
 
         <td class="title" colspan="2">
           НАКЛАДНАЯ НА ПЕРЕМЕЩЕНИЕ МАТЕРИАЛОВ
+        </td>
+
+        <td class="qr-cell" rowspan="5">
+          <img id="qrImage"
+               class="qr-image"
+               alt="QR-код накладной">
+          <div class="qr-note">
+            QR электронной копии
+          </div>
         </td>
       </tr>
 
@@ -492,6 +555,29 @@
     const autoPrint = (params.get('print') || '').trim() === '1';
     // (Если ссылка открыта с &print=1 — после полной загрузки вызвать печать)
 
+    function setQrCode(docId) {
+      // (QR ведёт на обычный просмотр накладной, без автоматической печати)
+      const qr = document.getElementById('qrImage');
+
+      if (!docId) {
+        qr.removeAttribute('src');
+        qr.style.display = 'none';
+        return;
+      }
+
+      const viewerUrl =
+        window.location.origin +
+        window.location.pathname +
+        '?doc=' +
+        encodeURIComponent(docId);
+
+      qr.src =
+        'https://quickchart.io/qr?size=240&margin=1&text=' +
+        encodeURIComponent(viewerUrl);
+
+      qr.style.display = 'block';
+    }
+
     function setText(id, value) {
       document.getElementById(id).textContent =
         value == null ? '' : String(value);
@@ -562,6 +648,7 @@
       setText('invoiceNo', data.invoiceNo || '—');
       setText('date', data.date || '');
       setText('docId', data.docId || '');
+      setQrCode(data.docId || '');
       setText('invoiceStatus', data.status || '');
 
       const normalizedStatus = String(data.status || '').trim().toUpperCase();
