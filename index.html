@@ -662,6 +662,12 @@
 
       document.getElementById('status').style.display = 'none';
       document.getElementById('document').style.display = 'block';
+
+      if (autoPrint) {
+        setTimeout(function() {
+          window.print();
+        }, 450);
+      }
     };
 
     if (!docId) {
