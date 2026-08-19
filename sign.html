@@ -12,7 +12,7 @@
 
   <title>СОS — Подписание накладной</title>
 
-  <!-- SOS V24.7 RELIABLE SIGNING -->
+  <!-- SOS V24.8 SIGNATURE SAVE WATCH -->
 
   <style>
     * {
@@ -478,6 +478,12 @@
     let ctx;
     let drawing = false;
     let hasSignature = false;
+
+    // Состояние сохранения подписи.
+    // Нужно, чтобы страница могла проверить результат через signContext,
+    // даже если скрытый iframe не вернул postMessage вовремя.
+    let signatureSaveFinished = false;
+    let signatureSavePolling = false;
 
 
     function enterFullscreen() {
@@ -1017,6 +1023,88 @@
     }
 
 
+    function finishSignatureSaveSuccess(name) {
+      // (Завершить сохранение подписи только один раз)
+      if (signatureSaveFinished) {
+        return;
+      }
+
+      signatureSaveFinished = true;
+      signatureSavePolling = false;
+
+      const button =
+        document.getElementById('signBtn');
+
+      button.disabled = false;
+      button.textContent = 'ПОДПИСЬ СОХРАНЕНА';
+
+      showSigned(name || '');
+
+      showMessage(
+        'Подпись успешно сохранена в СОS.',
+        'success'
+      );
+    }
+
+
+    async function watchSignatureSave(expectedName) {
+      // (После POST проверять статус накладной через лёгкий signContext)
+      if (signatureSavePolling) {
+        return;
+      }
+
+      signatureSavePolling = true;
+
+      const startedAt = Date.now();
+      const maxWaitMs = 60000;
+
+      while (
+        !signatureSaveFinished &&
+        Date.now() - startedAt < maxWaitMs
+      ) {
+        await delay(2500);
+
+        try {
+          const result = await jsonp(
+            'signContext'
+          );
+
+          if (
+            result &&
+            result.ok &&
+            result.signed
+          ) {
+            finishSignatureSaveSuccess(
+              result.signedName ||
+              expectedName ||
+              ''
+            );
+            return;
+          }
+        } catch (error) {
+          // Кратковременная ошибка проверки не означает,
+          // что само сохранение подписи завершилось ошибкой.
+        }
+      }
+
+      signatureSavePolling = false;
+
+      if (!signatureSaveFinished) {
+        const button =
+          document.getElementById('signBtn');
+
+        button.disabled = false;
+        button.textContent = 'ПРОВЕРИТЬ / СОХРАНИТЬ ЕЩЁ РАЗ';
+
+        showMessage(
+          'Сервер пока не подтвердил сохранение подписи. ' +
+          'Подождите несколько секунд и нажмите кнопку ещё раз.',
+          'error'
+        );
+      }
+    }
+
+
     function submitSignature() {
       const name =
         document
@@ -1063,8 +1151,15 @@
       const button =
         document.getElementById('signBtn');
 
+      signatureSaveFinished = false;
+
       button.disabled = true;
       button.textContent = 'Сохраняем...';
+
+      showMessage(
+        'Сохраняем подпись. Не закрывайте страницу.',
+        'info'
+      );
 
       const form =
         document.createElement('form');
@@ -1097,6 +1192,10 @@
       document.body.appendChild(form);
       form.submit();
       form.remove();
+
+      // Не ждём только postMessage от скрытого iframe.
+      // Параллельно проверяем, появилась ли подпись на сервере.
+      watchSignatureSave(name);
     }
 
 
@@ -1143,6 +1242,8 @@
         button.textContent = 'ПОДПИСАТЬ';
 
         if (!result.ok) {
+          signatureSavePolling = false;
+
           showMessage(
             result.error ||
               'Не удалось сохранить подпись.',
@@ -1157,12 +1258,7 @@
             .value
             .trim();
 
-        showSigned(name);
-
-        showMessage(
-          'Подпись успешно сохранена в СОS.',
-          'success'
-        );
+        finishSignatureSaveSuccess(name);
       }
     );
 
