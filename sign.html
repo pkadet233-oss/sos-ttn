@@ -10,9 +10,7 @@
 
   <meta name="theme-color" content="#173f70">
 
-  <title>СОS — Подписание накладной</title>
-
-  <!-- SOS V24.8 SIGNATURE SAVE WATCH -->
+  <title>СОS — Подписание накладной V5.48</title>
 
   <style>
     * {
@@ -214,7 +212,7 @@
 
     .canvas-wrap {
       width: 100%;
-      height: 250px;
+      height: 290px;
       border: 2px solid #173f70;
       border-radius: 10px;
       background: #ffffff;
@@ -267,6 +265,108 @@
       margin-top: 10px;
       color: #66768a;
       font-size: 17px;
+    }
+
+    .materials-section {
+      margin-top: 14px;
+      padding: 16px;
+      border: 2px solid #9fbad7;
+      border-radius: 12px;
+      background: #f8fbff;
+    }
+
+    .materials-section.receiver {
+      border-color: #e0a800;
+      background: #fffdf2;
+    }
+
+    .materials-title {
+      color: #173f70;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .materials-section.receiver .materials-title {
+      color: #7a5200;
+    }
+
+    .materials-notice {
+      display: none;
+      margin-top: 10px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: #fff3cd;
+      color: #664d03;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .materials-count {
+      margin-top: 7px;
+      color: #66768a;
+      font-size: 14px;
+    }
+
+    .materials-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .material-card {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid #c9d8e8;
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    .material-number {
+      display: flex;
+      width: 30px;
+      height: 30px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #173f70;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .material-name {
+      color: #15263a;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+    }
+
+    .material-qty {
+      margin-top: 5px;
+      color: #0b6623;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .material-note {
+      margin-top: 5px;
+      color: #66768a;
+      font-size: 14px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .materials-empty {
+      margin-top: 10px;
+      color: #8a2d2d;
+      font-size: 15px;
+      font-weight: 600;
     }
 
     .loading {
@@ -357,6 +457,44 @@
           <div class="label">Куда</div>
           <div class="value" id="to">—</div>
         </div>
+
+        <section
+          id="materialsSection"
+          class="materials-section"
+          style="display:none;"
+        >
+          <div
+            id="materialsTitle"
+            class="materials-title"
+          >
+            МАТЕРИАЛЫ ПО НАКЛАДНОЙ
+          </div>
+
+          <div
+            id="receiverMaterialsNotice"
+            class="materials-notice"
+          >
+            Перед подписью проверьте, что фактически получаете именно эти материалы и количество.
+          </div>
+
+          <div
+            id="materialsCount"
+            class="materials-count"
+          ></div>
+
+          <div
+            id="materialsList"
+            class="materials-list"
+          ></div>
+
+          <div
+            id="materialsEmpty"
+            class="materials-empty"
+            style="display:none;"
+          >
+            В накладной нет заполненных позиций материалов.
+          </div>
+        </section>
 
         <div id="workflow">
           <section class="section">
@@ -479,12 +617,6 @@
     let drawing = false;
     let hasSignature = false;
 
-    // Состояние сохранения подписи.
-    // Нужно, чтобы страница могла проверить результат через signContext,
-    // даже если скрытый iframe не вернул postMessage вовремя.
-    let signatureSaveFinished = false;
-    let signatureSavePolling = false;
-
 
     function enterFullscreen() {
       // (Браузер разрешает полноэкранный режим только после действия пользователя)
@@ -539,7 +671,7 @@
         const timeout = setTimeout(function() {
           cleanup();
           reject(new Error('Сервер не ответил вовремя.'));
-        }, 45000);
+        }, 20000);
 
         function cleanup() {
           clearTimeout(timeout);
@@ -575,33 +707,194 @@
     }
 
 
+    function renderMaterials(materials, role) {
+      // (Показать человеку фактический состав накладной до подписания)
 
-    function delay(ms) {
-      // (Небольшая пауза перед повторной попыткой связи)
-      return new Promise(function(resolve) {
-        setTimeout(resolve, ms);
-      });
-    }
+      const section =
+        document.getElementById(
+          'materialsSection'
+        );
 
+      const title =
+        document.getElementById(
+          'materialsTitle'
+        );
 
-    async function jsonpWithRetry(action, extraParams, retries) {
-      // (Повторять только безопасные запросы; signRequestOtp сюда не передаём)
-      const maxRetries = Number(retries || 0);
-      let lastError = null;
+      const notice =
+        document.getElementById(
+          'receiverMaterialsNotice'
+        );
 
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-          return await jsonp(action, extraParams);
-        } catch (error) {
-          lastError = error;
+      const count =
+        document.getElementById(
+          'materialsCount'
+        );
 
-          if (attempt < maxRetries) {
-            await delay(1500);
-          }
-        }
+      const list =
+        document.getElementById(
+          'materialsList'
+        );
+
+      const empty =
+        document.getElementById(
+          'materialsEmpty'
+        );
+
+      const items =
+        Array.isArray(materials)
+          ? materials
+          : [];
+
+      const isReceiver =
+        String(role || '')
+          .trim()
+          .toUpperCase() ===
+        'RECEIVER';
+
+      section.style.display = 'block';
+
+      if (isReceiver) {
+        section.classList.add(
+          'receiver'
+        );
+
+        title.textContent =
+          'МАТЕРИАЛЫ К ПОЛУЧЕНИЮ';
+
+        notice.style.display =
+          'block';
+      } else {
+        section.classList.remove(
+          'receiver'
+        );
+
+        title.textContent =
+          'МАТЕРИАЛЫ ПО НАКЛАДНОЙ';
+
+        notice.style.display =
+          'none';
       }
 
-      throw lastError || new Error('Не удалось связаться с сервером СОS.');
+      list.textContent = '';
+      // (Очищать через textContent, не через HTML — данные накладной остаются безопасным текстом)
+
+      count.textContent =
+        'Позиций: ' +
+        String(items.length);
+
+      if (!items.length) {
+        empty.style.display =
+          'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      items.forEach(
+        function(item, index) {
+          const source =
+            item || {};
+
+          const card =
+            document.createElement(
+              'div'
+            );
+
+          card.className =
+            'material-card';
+
+          const number =
+            document.createElement(
+              'div'
+            );
+
+          number.className =
+            'material-number';
+
+          number.textContent =
+            String(
+              source.number ||
+              index + 1
+            );
+
+          const body =
+            document.createElement(
+              'div'
+            );
+
+          const name =
+            document.createElement(
+              'div'
+            );
+
+          name.className =
+            'material-name';
+
+          name.textContent =
+            String(
+              source.name ||
+              'Материал без наименования'
+            );
+
+          const qty =
+            document.createElement(
+              'div'
+            );
+
+          qty.className =
+            'material-qty';
+
+          const qtyText =
+            String(
+              source.qty || ''
+            ).trim();
+
+          const unitText =
+            String(
+              source.unit || ''
+            ).trim();
+
+          qty.textContent =
+            'Количество: ' +
+            (
+              [
+                qtyText,
+                unitText
+              ]
+                .filter(Boolean)
+                .join(' ') ||
+              'не указано'
+            );
+
+          body.appendChild(name);
+          body.appendChild(qty);
+
+          const noteText =
+            String(
+              source.note || ''
+            ).trim();
+
+          if (noteText) {
+            const note =
+              document.createElement(
+                'div'
+              );
+
+            note.className =
+              'material-note';
+
+            note.textContent =
+              'Примечание: ' +
+              noteText;
+
+            body.appendChild(note);
+          }
+
+          card.appendChild(number);
+          card.appendChild(body);
+          list.appendChild(card);
+        }
+      );
     }
 
 
@@ -613,10 +906,8 @@
       }
 
       try {
-        const result = await jsonpWithRetry(
-          'signContext',
-          null,
-          1
+        const result = await jsonp(
+          'signContext'
         );
 
         document.getElementById('loading').style.display = 'none';
@@ -639,6 +930,12 @@
         setText('phoneMasked', result.phoneMasked);
         setText('from', result.from);
         setText('to', result.to);
+
+        renderMaterials(
+          result.materials,
+          result.role
+        );
+        // (До OTP показать подписанту, что именно находится в этой накладной)
 
         document.getElementById('signerName').value =
           result.signedName ||
@@ -665,30 +962,6 @@
     }
 
 
-    function startOtpCooldown(button, seconds) {
-      // (После успешной SMS не разрешать сразу запрашивать новый код)
-      let remaining = Number(seconds || 60);
-
-      button.disabled = true;
-      button.textContent =
-        'Новый код через ' + remaining + ' сек.';
-
-      const timer = setInterval(function() {
-        remaining--;
-
-        if (remaining <= 0) {
-          clearInterval(timer);
-          button.disabled = false;
-          button.textContent = 'Получить новый код';
-          return;
-        }
-
-        button.textContent =
-          'Новый код через ' + remaining + ' сек.';
-      }, 1000);
-    }
-
-
     async function requestOtp() {
       // (Первый осознанный тап можно использовать для полноэкранного режима)
       enterFullscreen();
@@ -696,30 +969,18 @@
       const button =
         document.getElementById('requestOtpBtn');
 
-      if (button.disabled) {
-        return;
-      }
-
       button.disabled = true;
-      button.textContent = 'Отправляем код...';
-
-      showMessage(
-        'Отправляем SMS. Не закрывайте страницу.',
-        'info'
-      );
+      button.textContent = 'Отправляем...';
 
       try {
-        // ВАЖНО:
-        // signRequestOtp НЕ повторяем автоматически,
-        // чтобы при нестабильной сети не отправить две SMS.
         const result = await jsonp(
           'signRequestOtp'
         );
 
-        if (!result || !result.ok) {
-          button.disabled = false;
-          button.textContent = 'Получить код';
+        button.disabled = false;
+        button.textContent = 'Получить новый код';
 
+        if (!result || !result.ok) {
           showMessage(
             result && result.error
               ? result.error
@@ -730,7 +991,7 @@
         }
 
         showMessage(
-          'Код отправлен. Срок действия — 5 минут.',
+          'Код подтверждения создан. Срок действия — 5 минут.',
           'info'
         );
 
@@ -747,8 +1008,6 @@
             result.testOtp;
         }
 
-        startOtpCooldown(button, 60);
-
         document.getElementById('otpInput').focus();
 
       } catch (error) {
@@ -763,6 +1022,7 @@
         );
       }
     }
+
 
     async function confirmOtp() {
       const otp =
@@ -779,34 +1039,13 @@
         return;
       }
 
-      const button =
-        document.getElementById('confirmOtpBtn');
-
-      if (button.disabled) {
-        return;
-      }
-
-      button.disabled = true;
-      button.textContent = 'Проверяем код...';
-
-      showMessage(
-        'Проверяем код на сервере СОS...',
-        'info'
-      );
-
       try {
-        // Подтверждение OTP можно безопасно повторить один раз,
-        // поскольку повтор не отправляет новую SMS.
-        const result = await jsonpWithRetry(
+        const result = await jsonp(
           'signConfirmOtp',
-          { otp: otp },
-          1
+          { otp: otp }
         );
 
         if (!result || !result.ok) {
-          button.disabled = false;
-          button.textContent = 'Подтвердить код';
-
           showMessage(
             result && result.error
               ? result.error
@@ -827,8 +1066,6 @@
           'testOtp'
         ).style.display = 'none';
 
-        button.textContent = 'Код подтверждён';
-
         showMessage(
           'Телефон подтверждён. Поставьте подпись пальцем.',
           'success'
@@ -844,9 +1081,6 @@
           });
 
       } catch (error) {
-        button.disabled = false;
-        button.textContent = 'Подтвердить код';
-
         showMessage(
           error && error.message
             ? error.message
@@ -855,6 +1089,7 @@
         );
       }
     }
+
 
     function initCanvas() {
       canvas =
@@ -927,10 +1162,10 @@
         0
       );
 
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 4.5;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#173f70';
+      ctx.strokeStyle = '#111827';
 
       hasSignature = false;
     }
@@ -1023,85 +1258,82 @@
     }
 
 
-    function finishSignatureSaveSuccess(name) {
-      // (Завершить сохранение подписи только один раз)
-      if (signatureSaveFinished) {
-        return;
+    function buildTrimmedSignatureDataUrl() {
+      // (Обрезать пустые прозрачные поля вокруг подписи)
+      // Старые версии отправляли весь холст целиком.
+
+      if (!canvas || !ctx) {
+        return '';
       }
 
-      signatureSaveFinished = true;
-      signatureSavePolling = false;
+      const width = canvas.width;
+      const height = canvas.height;
 
-      const button =
-        document.getElementById('signBtn');
-
-      button.disabled = false;
-      button.textContent = 'ПОДПИСЬ СОХРАНЕНА';
-
-      showSigned(name || '');
-
-      showMessage(
-        'Подпись успешно сохранена в СОS.',
-        'success'
-      );
-    }
-
-
-    async function watchSignatureSave(expectedName) {
-      // (После POST проверять статус накладной через лёгкий signContext)
-      if (signatureSavePolling) {
-        return;
+      if (!width || !height) {
+        return '';
       }
 
-      signatureSavePolling = true;
+      const image = ctx.getImageData(0, 0, width, height);
+      const pixels = image.data;
 
-      const startedAt = Date.now();
-      const maxWaitMs = 60000;
+      let minX = width;
+      let minY = height;
+      let maxX = -1;
+      let maxY = -1;
 
-      while (
-        !signatureSaveFinished &&
-        Date.now() - startedAt < maxWaitMs
-      ) {
-        await delay(2500);
+      const alphaThreshold = 12;
 
-        try {
-          const result = await jsonp(
-            'signContext'
-          );
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const alpha = pixels[((y * width + x) * 4) + 3];
 
-          if (
-            result &&
-            result.ok &&
-            result.signed
-          ) {
-            finishSignatureSaveSuccess(
-              result.signedName ||
-              expectedName ||
-              ''
-            );
-            return;
+          if (alpha <= alphaThreshold) {
+            continue;
           }
-        } catch (error) {
-          // Кратковременная ошибка проверки не означает,
-          // что само сохранение подписи завершилось ошибкой.
+
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
         }
       }
 
-      signatureSavePolling = false;
-
-      if (!signatureSaveFinished) {
-        const button =
-          document.getElementById('signBtn');
-
-        button.disabled = false;
-        button.textContent = 'ПРОВЕРИТЬ / СОХРАНИТЬ ЕЩЁ РАЗ';
-
-        showMessage(
-          'Сервер пока не подтвердил сохранение подписи. ' +
-          'Подождите несколько секунд и нажмите кнопку ещё раз.',
-          'error'
-        );
+      if (maxX < minX || maxY < minY) {
+        return '';
       }
+
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const padding = Math.max(Math.round(16 * ratio), 14);
+
+      const left = Math.max(0, minX - padding);
+      const top = Math.max(0, minY - padding);
+      const right = Math.min(width - 1, maxX + padding);
+      const bottom = Math.min(height - 1, maxY + padding);
+
+      const cropWidth = Math.max(1, right - left + 1);
+      const cropHeight = Math.max(1, bottom - top + 1);
+
+      const trimmed = document.createElement('canvas');
+      trimmed.width = cropWidth;
+      trimmed.height = cropHeight;
+
+      const trimmedContext = trimmed.getContext('2d');
+      trimmedContext.clearRect(0, 0, cropWidth, cropHeight);
+
+      trimmedContext.drawImage(
+        canvas,
+        left,
+        top,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        cropWidth,
+        cropHeight
+      );
+
+      return trimmed.toDataURL('image/png');
+      // (Отправить PNG только по фактическим границам росчерка)
     }
 
 
@@ -1148,18 +1380,23 @@
         return;
       }
 
+      const signatureDataUrl =
+        buildTrimmedSignatureDataUrl();
+      // (Сформировать компактный PNG без пустых полей)
+
+      if (!signatureDataUrl) {
+        showMessage(
+          'Подпись не распознана. Нарисуйте её ещё раз крупнее.',
+          'error'
+        );
+        return;
+      }
+
       const button =
         document.getElementById('signBtn');
 
-      signatureSaveFinished = false;
-
       button.disabled = true;
       button.textContent = 'Сохраняем...';
-
-      showMessage(
-        'Сохраняем подпись. Не закрывайте страницу.',
-        'info'
-      );
 
       const form =
         document.createElement('form');
@@ -1175,7 +1412,7 @@
         v: verificationToken,
         name: name,
         signatureDataUrl:
-          canvas.toDataURL('image/png')
+          signatureDataUrl
       };
 
       Object.keys(fields).forEach(function(key) {
@@ -1192,10 +1429,6 @@
       document.body.appendChild(form);
       form.submit();
       form.remove();
-
-      // Не ждём только postMessage от скрытого iframe.
-      // Параллельно проверяем, появилась ли подпись на сервере.
-      watchSignatureSave(name);
     }
 
 
@@ -1242,8 +1475,6 @@
         button.textContent = 'ПОДПИСАТЬ';
 
         if (!result.ok) {
-          signatureSavePolling = false;
-
           showMessage(
             result.error ||
               'Не удалось сохранить подпись.',
@@ -1258,7 +1489,12 @@
             .value
             .trim();
 
-        finishSignatureSaveSuccess(name);
+        showSigned(name);
+
+        showMessage(
+          'Подпись успешно сохранена в СОS.',
+          'success'
+        );
       }
     );
 
