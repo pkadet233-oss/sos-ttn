@@ -12,6 +12,8 @@
 
   <title>СОS — Подписание накладной</title>
 
+  <!-- SOS V24.7 RELIABLE SIGNING -->
+
   <style>
     * {
       box-sizing: border-box;
@@ -454,6 +456,11 @@
     </main>
   </div>
 
+  <iframe
+    id="signSubmitFrame"
+    name="signSubmitFrame"
+    title="Служебная отправка подписи"
+  ></iframe>
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbwDeaPRSxOJC6AtNBkNYyWMYzczn3wROHMoU2oTEKBs6tCphP79evdPP-YNRitb-8oh/exec';
@@ -526,7 +533,7 @@
         const timeout = setTimeout(function() {
           cleanup();
           reject(new Error('Сервер не ответил вовремя.'));
-        }, 20000);
+        }, 45000);
 
         function cleanup() {
           clearTimeout(timeout);
@@ -562,6 +569,36 @@
     }
 
 
+
+    function delay(ms) {
+      // (Небольшая пауза перед повторной попыткой связи)
+      return new Promise(function(resolve) {
+        setTimeout(resolve, ms);
+      });
+    }
+
+
+    async function jsonpWithRetry(action, extraParams, retries) {
+      // (Повторять только безопасные запросы; signRequestOtp сюда не передаём)
+      const maxRetries = Number(retries || 0);
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          return await jsonp(action, extraParams);
+        } catch (error) {
+          lastError = error;
+
+          if (attempt < maxRetries) {
+            await delay(1500);
+          }
+        }
+      }
+
+      throw lastError || new Error('Не удалось связаться с сервером СОS.');
+    }
+
+
     async function loadContext() {
       if (!SIGN_TOKEN) {
         document.getElementById('loading').style.display = 'none';
@@ -570,8 +607,10 @@
       }
 
       try {
-        const result = await jsonp(
-          'signContext'
+        const result = await jsonpWithRetry(
+          'signContext',
+          null,
+          1
         );
 
         document.getElementById('loading').style.display = 'none';
@@ -620,6 +659,30 @@
     }
 
 
+    function startOtpCooldown(button, seconds) {
+      // (После успешной SMS не разрешать сразу запрашивать новый код)
+      let remaining = Number(seconds || 60);
+
+      button.disabled = true;
+      button.textContent =
+        'Новый код через ' + remaining + ' сек.';
+
+      const timer = setInterval(function() {
+        remaining--;
+
+        if (remaining <= 0) {
+          clearInterval(timer);
+          button.disabled = false;
+          button.textContent = 'Получить новый код';
+          return;
+        }
+
+        button.textContent =
+          'Новый код через ' + remaining + ' сек.';
+      }, 1000);
+    }
+
+
     async function requestOtp() {
       // (Первый осознанный тап можно использовать для полноэкранного режима)
       enterFullscreen();
@@ -627,18 +690,30 @@
       const button =
         document.getElementById('requestOtpBtn');
 
+      if (button.disabled) {
+        return;
+      }
+
       button.disabled = true;
-      button.textContent = 'Отправляем...';
+      button.textContent = 'Отправляем код...';
+
+      showMessage(
+        'Отправляем SMS. Не закрывайте страницу.',
+        'info'
+      );
 
       try {
+        // ВАЖНО:
+        // signRequestOtp НЕ повторяем автоматически,
+        // чтобы при нестабильной сети не отправить две SMS.
         const result = await jsonp(
           'signRequestOtp'
         );
 
-        button.disabled = false;
-        button.textContent = 'Получить новый код';
-
         if (!result || !result.ok) {
+          button.disabled = false;
+          button.textContent = 'Получить код';
+
           showMessage(
             result && result.error
               ? result.error
@@ -649,7 +724,7 @@
         }
 
         showMessage(
-          'Код подтверждения создан. Срок действия — 5 минут.',
+          'Код отправлен. Срок действия — 5 минут.',
           'info'
         );
 
@@ -666,6 +741,8 @@
             result.testOtp;
         }
 
+        startOtpCooldown(button, 60);
+
         document.getElementById('otpInput').focus();
 
       } catch (error) {
@@ -680,7 +757,6 @@
         );
       }
     }
-
 
     async function confirmOtp() {
       const otp =
@@ -697,13 +773,34 @@
         return;
       }
 
+      const button =
+        document.getElementById('confirmOtpBtn');
+
+      if (button.disabled) {
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Проверяем код...';
+
+      showMessage(
+        'Проверяем код на сервере СОS...',
+        'info'
+      );
+
       try {
-        const result = await jsonp(
+        // Подтверждение OTP можно безопасно повторить один раз,
+        // поскольку повтор не отправляет новую SMS.
+        const result = await jsonpWithRetry(
           'signConfirmOtp',
-          { otp: otp }
+          { otp: otp },
+          1
         );
 
         if (!result || !result.ok) {
+          button.disabled = false;
+          button.textContent = 'Подтвердить код';
+
           showMessage(
             result && result.error
               ? result.error
@@ -724,6 +821,8 @@
           'testOtp'
         ).style.display = 'none';
 
+        button.textContent = 'Код подтверждён';
+
         showMessage(
           'Телефон подтверждён. Поставьте подпись пальцем.',
           'success'
@@ -739,6 +838,9 @@
           });
 
       } catch (error) {
+        button.disabled = false;
+        button.textContent = 'Подтвердить код';
+
         showMessage(
           error && error.message
             ? error.message
@@ -747,7 +849,6 @@
         );
       }
     }
-
 
     function initCanvas() {
       canvas =
@@ -916,7 +1017,7 @@
     }
 
 
-    async function submitSignature() {
+    function submitSignature() {
       const name =
         document
           .getElementById('signerName')
@@ -965,117 +1066,37 @@
       button.disabled = true;
       button.textContent = 'Сохраняем...';
 
-      showMessage(
-        'Отправляем подпись в СОS...',
-        'info'
-      );
+      const form =
+        document.createElement('form');
 
-      try {
-        const body = new URLSearchParams();
+      form.method = 'POST';
+      form.action = API_URL;
+      form.target = 'signSubmitFrame';
+      form.style.display = 'none';
 
-        body.set(
-          'action',
-          'signSubmitForm'
-        );
-
-        body.set(
-          't',
-          SIGN_TOKEN
-        );
-
-        body.set(
-          'v',
-          verificationToken
-        );
-
-        body.set(
-          'name',
-          name
-        );
-
-        body.set(
-          'signatureDataUrl',
+      const fields = {
+        action: 'signSubmitForm',
+        t: SIGN_TOKEN,
+        v: verificationToken,
+        name: name,
+        signatureDataUrl:
           canvas.toDataURL('image/png')
-        );
-
-        // (Ответ читать не требуется: Apps Script находится на другом домене.
-        // После отправки проверяем статус подписи через JSONP.)
-        await fetch(
-          API_URL,
-          {
-            method: 'POST',
-            mode: 'no-cors',
-            body: body
-          }
-        );
-
-        const signedResult =
-          await waitUntilSigned();
-
-        if (!signedResult.ok) {
-          throw new Error(
-            signedResult.error ||
-            'Сервер не подтвердил сохранение подписи.'
-          );
-        }
-
-        showSigned(
-          signedResult.signedName ||
-          name
-        );
-
-        showMessage(
-          'Подпись успешно сохранена в СОS.',
-          'success'
-        );
-
-      } catch (error) {
-        button.disabled = false;
-        button.textContent = 'ПОДПИСАТЬ';
-
-        showMessage(
-          error && error.message
-            ? error.message
-            : String(error),
-          'error'
-        );
-      }
-    }
-
-
-    async function waitUntilSigned() {
-      // (До 30 секунд проверять, что сервер действительно записал PNG и журнал)
-
-      const startedAt = Date.now();
-
-      while (
-        Date.now() - startedAt < 30000
-      ) {
-        await new Promise(function(resolve) {
-          setTimeout(resolve, 1200);
-        });
-
-        try {
-          const result =
-            await jsonp('signContext');
-
-          if (
-            result &&
-            result.ok &&
-            result.signed
-          ) {
-            return result;
-          }
-        } catch (error) {
-          // (Кратковременную ошибку сети игнорировать и повторить проверку)
-        }
-      }
-
-      return {
-        ok: false,
-        error:
-          'Подпись отправлена, но подтверждение сервера не получено. Обновите страницу и проверьте статус.'
       };
+
+      Object.keys(fields).forEach(function(key) {
+        const input =
+          document.createElement('input');
+
+        input.type = 'hidden';
+        input.name = key;
+        input.value = fields[key];
+
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+      form.remove();
     }
 
 
@@ -1097,6 +1118,53 @@
     }
 
 
+    window.addEventListener(
+      'message',
+      function(event) {
+        const allowedOrigin =
+          event.origin === 'https://script.google.com' ||
+          event.origin === 'https://script.googleusercontent.com';
+
+        if (
+          !allowedOrigin ||
+          !event.data ||
+          event.data.source !== 'SOS_SIGN_RESULT'
+        ) {
+          return;
+        }
+
+        const result =
+          event.data.result || {};
+
+        const button =
+          document.getElementById('signBtn');
+
+        button.disabled = false;
+        button.textContent = 'ПОДПИСАТЬ';
+
+        if (!result.ok) {
+          showMessage(
+            result.error ||
+              'Не удалось сохранить подпись.',
+            'error'
+          );
+          return;
+        }
+
+        const name =
+          document
+            .getElementById('signerName')
+            .value
+            .trim();
+
+        showSigned(name);
+
+        showMessage(
+          'Подпись успешно сохранена в СОS.',
+          'success'
+        );
+      }
+    );
 
 
     window.addEventListener(
