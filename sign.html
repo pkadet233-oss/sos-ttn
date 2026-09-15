@@ -1,3 +1,4 @@
+<!-- СОS V5.50 FAST SIGNATURE SAVE — 15.09.2026 -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -611,6 +612,8 @@
     // даже если скрытый iframe не вернул postMessage вовремя.
     let signatureSaveFinished = false;
     let signatureSavePolling = false;
+    let signatureBounds = null;
+    let canvasPixelRatio = 1;
 
 
     function enterFullscreen() {
@@ -667,7 +670,7 @@
         const timeout = setTimeout(function() {
           cleanup();
           reject(new Error('Сервер не ответил вовремя.'));
-        }, 60000);
+        }, 20000);
 
         function cleanup() {
           clearTimeout(timeout);
@@ -724,7 +727,7 @@
           lastError = error;
 
           if (attempt < maxRetries) {
-            await delay(1500);
+            await delay(500);
           }
         }
       }
@@ -1123,10 +1126,17 @@
         canvas.parentElement.getBoundingClientRect();
 
       const ratio =
-        Math.max(
-          window.devicePixelRatio || 1,
-          1
+        Math.min(
+          Math.max(
+            window.devicePixelRatio || 1,
+            1
+          ),
+          1.5
         );
+      // (Ограничить сверхвысокий DPI телефона: подпись остаётся чёткой,
+      // но PNG получается заметно меньше и быстрее уходит на сервер.)
+
+      canvasPixelRatio = ratio;
 
       canvas.width =
         Math.floor(rect.width * ratio);
@@ -1149,6 +1159,7 @@
       ctx.strokeStyle = '#111827';
 
       hasSignature = false;
+      signatureBounds = null;
     }
 
 
@@ -1163,12 +1174,36 @@
     }
 
 
+    function updateSignatureBounds(point) {
+      if (!point) {
+        return;
+      }
+
+      if (!signatureBounds) {
+        signatureBounds = {
+          minX: point.x,
+          minY: point.y,
+          maxX: point.x,
+          maxY: point.y
+        };
+        return;
+      }
+
+      if (point.x < signatureBounds.minX) signatureBounds.minX = point.x;
+      if (point.x > signatureBounds.maxX) signatureBounds.maxX = point.x;
+      if (point.y < signatureBounds.minY) signatureBounds.minY = point.y;
+      if (point.y > signatureBounds.maxY) signatureBounds.maxY = point.y;
+    }
+
+
     function startDraw(event) {
       drawing = true;
       hasSignature = true;
 
       const point =
         pointFromEvent(event);
+
+      updateSignatureBounds(point);
 
       ctx.beginPath();
       ctx.moveTo(
@@ -1193,6 +1228,8 @@
 
       const point =
         pointFromEvent(event);
+
+      updateSignatureBounds(point);
 
       ctx.lineTo(
         point.x,
@@ -1236,6 +1273,7 @@
       );
 
       hasSignature = false;
+      signatureBounds = null;
     }
 
 
@@ -1264,7 +1302,7 @@
 
 
     async function watchSignatureSave(expectedName) {
-      // (После POST проверять статус накладной через лёгкий signContext)
+      // (После POST проверять только лёгкий статус подписи, без загрузки накладной и материалов)
       if (signatureSavePolling) {
         return;
       }
@@ -1272,17 +1310,24 @@
       signatureSavePolling = true;
 
       const startedAt = Date.now();
-      const maxWaitMs = 60000;
+      const maxWaitMs = 25000;
 
       while (
         !signatureSaveFinished &&
         Date.now() - startedAt < maxWaitMs
       ) {
-        await delay(2500);
+        const elapsed = Date.now() - startedAt;
+
+        await delay(
+          elapsed < 4000
+            ? 450
+            : 900
+        );
+        // (Первые секунды подтверждаем быстро, затем слегка уменьшаем частоту.)
 
         try {
           const result = await jsonp(
-            'signContext'
+            'signStatus'
           );
 
           if (
@@ -1291,7 +1336,7 @@
             result.signed
           ) {
             finishSignatureSaveSuccess(
-              result.signedName ||
+              result.signerName ||
               expectedName ||
               ''
             );
@@ -1322,59 +1367,113 @@
 
 
     function buildTrimmedSignatureDataUrl() {
-      // (Обрезать пустые поля вокруг подписи до отправки на сервер)
+      // (Быстро обрезать подпись по фактическим границам росчерка.
+      // Не сканируем каждый пиксель большого мобильного canvas.)
 
-      if (!canvas || !ctx || !canvas.width || !canvas.height) {
+      if (
+        !canvas ||
+        !ctx ||
+        !canvas.width ||
+        !canvas.height ||
+        !signatureBounds
+      ) {
         return '';
       }
 
-      const width = canvas.width;
-      const height = canvas.height;
-      const image = ctx.getImageData(0, 0, width, height);
-      const pixels = image.data;
+      const ratio =
+        Math.max(
+          Number(canvasPixelRatio || 1),
+          1
+        );
 
-      let minX = width;
-      let minY = height;
-      let maxX = -1;
-      let maxY = -1;
+      const padding =
+        Math.max(
+          Math.round(18 * ratio),
+          14
+        );
 
-      for (let y = 0; y < height; y += 1) {
-        for (let x = 0; x < width; x += 1) {
-          const alpha = pixels[((y * width + x) * 4) + 3];
+      const left =
+        Math.max(
+          0,
+          Math.floor(
+            signatureBounds.minX * ratio
+          ) - padding
+        );
 
-          if (alpha <= 12) {
-            continue;
-          }
+      const top =
+        Math.max(
+          0,
+          Math.floor(
+            signatureBounds.minY * ratio
+          ) - padding
+        );
 
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
+      const right =
+        Math.min(
+          canvas.width - 1,
+          Math.ceil(
+            signatureBounds.maxX * ratio
+          ) + padding
+        );
 
-      if (maxX < minX || maxY < minY) {
-        return '';
-      }
+      const bottom =
+        Math.min(
+          canvas.height - 1,
+          Math.ceil(
+            signatureBounds.maxY * ratio
+          ) + padding
+        );
 
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      const padding = Math.max(Math.round(16 * ratio), 14);
+      const cropWidth =
+        Math.max(
+          1,
+          right - left + 1
+        );
 
-      const left = Math.max(0, minX - padding);
-      const top = Math.max(0, minY - padding);
-      const right = Math.min(width - 1, maxX + padding);
-      const bottom = Math.min(height - 1, maxY + padding);
+      const cropHeight =
+        Math.max(
+          1,
+          bottom - top + 1
+        );
 
-      const cropWidth = Math.max(1, right - left + 1);
-      const cropHeight = Math.max(1, bottom - top + 1);
+      const maxWidth = 640;
+      const maxHeight = 240;
 
-      const trimmed = document.createElement('canvas');
-      trimmed.width = cropWidth;
-      trimmed.height = cropHeight;
+      const scale =
+        Math.min(
+          1,
+          maxWidth / cropWidth,
+          maxHeight / cropHeight
+        );
 
-      const trimmedContext = trimmed.getContext('2d');
+      const outputWidth =
+        Math.max(
+          1,
+          Math.round(cropWidth * scale)
+        );
 
-      trimmedContext.clearRect(0, 0, cropWidth, cropHeight);
+      const outputHeight =
+        Math.max(
+          1,
+          Math.round(cropHeight * scale)
+        );
+
+      const trimmed =
+        document.createElement('canvas');
+
+      trimmed.width = outputWidth;
+      trimmed.height = outputHeight;
+
+      const trimmedContext =
+        trimmed.getContext('2d');
+
+      trimmedContext.clearRect(
+        0,
+        0,
+        outputWidth,
+        outputHeight
+      );
+
       trimmedContext.drawImage(
         canvas,
         left,
@@ -1383,11 +1482,14 @@
         cropHeight,
         0,
         0,
-        cropWidth,
-        cropHeight
+        outputWidth,
+        outputHeight
       );
 
-      return trimmed.toDataURL('image/png');
+      return trimmed.toDataURL(
+        'image/png'
+      );
+      // (На сервер уходит только компактный PNG подписи, а не весь экранный холст.)
     }
 
 
