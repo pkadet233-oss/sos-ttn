@@ -7,6 +7,9 @@
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
   >
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
   <title>СОS — ТТН</title>
 
@@ -751,7 +754,18 @@
     const API_BASE = 'https://script.google.com/macros/s/AKfycbwDeaPRSxOJC6AtNBkNYyWMYzczn3wROHMoU2oTEKBs6tCphP79evdPP-YNRitb-8oh/exec';
 
     // (Получить ID накладной из QR-ссылки)
+    const VIEWER_BUILD = '20260915-2';
     const params = new URLSearchParams(window.location.search);
+
+    if ((params.get('v') || '').trim() !== VIEWER_BUILD) {
+      params.set('v', VIEWER_BUILD);
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + '?' + params.toString()
+      );
+    }
+
     const docId = (params.get('doc') || '').trim();
     const autoPrint = (params.get('print') || '').trim() === '1';
     // (Если ссылка открыта с &print=1 — после полной загрузки вызвать печать)
@@ -770,7 +784,9 @@
         window.location.origin +
         window.location.pathname +
         '?doc=' +
-        encodeURIComponent(docId);
+        encodeURIComponent(docId) +
+        '&v=' +
+        encodeURIComponent(VIEWER_BUILD);
 
       qr.src =
         'https://quickchart.io/qr?size=240&margin=1&text=' +
