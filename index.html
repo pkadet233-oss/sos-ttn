@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
+  >
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>СОS — ТТН</title>
+
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <link rel="dns-prefetch" href="//script.google.com">
+  <link rel="dns-prefetch" href="//script.googleusercontent.com">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background: #e9edf2;
+      color: #172033;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    #status {
+      width: 100%;
+      padding: 24px 12px;
+      text-align: center;
+      color: #17365d;
+      font-size: 16px;
+    }
+
+    #error {
+      display: none;
+      margin: 12px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #c8d0da;
+      color: #9c0006;
+      font-size: 14px;
+    }
+
+    #document {
+      display: none;
+      width: 100%;
+      max-width: 920px;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+
+    #cancelBanner {
+      display: none;
+      margin: 0;
+      padding: 14px 12px;
+      background: #b00020;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      line-height: 1.45;
+      border-bottom: 3px solid #7a0016;
+    }
+
+    #cancelBanner .cancel-title {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    #cancelBanner .cancel-details {
+      display: block;
+      font-size: 12px;
+      font-weight: normal;
+    }
+
+    .status-cell.canceled {
+      background: #f8d7da;
+      color: #9c0006;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    td,
+    th {
+      border: 1px solid #8b99a8;
+      padding: 7px 5px;
+      vertical-align: middle;
+      overflow-wrap: anywhere;
+    }
+
+    .brand {
+      width: 22%;
+      background: #17365d;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .qr-cell {
+      width: 20%;
+      padding: 5px;
+      text-align: center;
+      vertical-align: middle;
+      background: #ffffff;
+    }
+
+    .qr-image {
+      display: block;
+      width: 105px;
+      height: 105px;
+      margin: 0 auto 3px;
+      object-fit: contain;
+    }
+
+    .qr-note {
+      color: #17365d;
+      font-size: 8px;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
+    .title {
+      color: #17365d;
+      font-weight: bold;
+      text-align: center;
+      font-size: 18px;
+      padding: 10px 5px;
+    }
+
+    .meta-label {
+      width: 35%;
+      color: #17365d;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .meta-value {
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .status-cell {
+      background: #fff2cc;
+      color: #8a6500;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .section {
+      margin-top: 6px;
+    }
+
+    .section-title {
+      background: #17365d;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .label {
+      width: 31%;
+      background: #d9e7f5;
+      color: #17365d;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .value {
+      background: #ffffff;
+      font-size: 11px;
+    }
+
+    .materials th {
+      background: #17365d;
+      color: #ffffff;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .materials td {
+      font-size: 10px;
+    }
+
+    .num {
+      width: 7%;
+      text-align: center;
+    }
+
+    .name {
+      width: 43%;
+    }
+
+    .unit {
+      width: 13%;
+      text-align: center;
+    }
+
+    .qty {
+      width: 17%;
+      text-align: center;
+    }
+
+    .note {
+      width: 20%;
+    }
+
+    .summary {
+      background: #d9e7f5;
+      color: #17365d;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .signature-title {
+      background: #17365d;
+      color: #ffffff;
+      text-align: center;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .signature-body {
+      min-height: 76px;
+      padding: 8px;
+      white-space: pre-line;
+      line-height: 1.7;
+      vertical-align: top;
+      font-size: 11px;
+    }
+
+    .sender-signature-layout {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sender-signature-text {
+      flex: 1 1 180px;
+      white-space: pre-line;
+    }
+
+    .sender-images {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      min-height: 70px;
+    }
+
+    .sender-signature-image {
+      display: none;
+      max-width: 150px;
+      max-height: 58px;
+      object-fit: contain;
+    }
+
+    .sender-stamp-image {
+      display: none;
+      max-width: 100px;
+      max-height: 100px;
+      object-fit: contain;
+    }
+
+    .remote-signature-block {
+      display: none;
+      width: 100%;
+      margin-top: 8px;
+      padding-top: 7px;
+      border-top: 1px dashed #9eb6ce;
+    }
+
+    .remote-signature-content {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .remote-signature-meta {
+      flex: 1 1 180px;
+      color: #18723a;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .remote-signature-image {
+      display: none;
+      max-width: 180px;
+      max-height: 72px;
+      object-fit: contain;
+    }
+
+    .electronic-confirmed {
+      margin-top: 5px;
+      color: #18723a;
+      font-size: 9px;
+      font-weight: bold;
+    }
+
+    .footer {
+      margin-top: 6px;
+      padding: 8px;
+      background: #eaf2f8;
+      color: #17365d;
+      text-align: center;
+      font-size: 9px;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+
+      html,
+      body {
+        background: #ffffff !important;
+      }
+
+      *,
+      *::before,
+      *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      #document {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+      }
+
+      #status,
+      #error {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 700px) {
+      html,
+      body {
+        width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      #document {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        overflow-x: hidden;
+      }
+
+      table {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        table-layout: fixed;
+      }
+
+      td,
+      th {
+        min-width: 0 !important;
+        padding: 4px 3px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .brand {
+        width: 16%;
+        font-size: 7px;
+        line-height: 1.15;
+        padding: 3px 2px;
+        overflow: hidden;
+      }
+
+      .qr-cell {
+        width: 22%;
+        padding: 2px;
+        overflow: hidden;
+      }
+
+      .qr-image {
+        width: 76px;
+        height: 76px;
+        max-width: 100%;
+        margin: 0 auto 2px;
+      }
+
+      .qr-note {
+        font-size: 6px;
+      }
+
+      .title {
+        font-size: 11px;
+        line-height: 1.15;
+        padding: 5px 2px;
+      }
+
+      .meta-label {
+        width: 38%;
+      }
+
+      .meta-label,
+      .meta-value,
+      .status-cell {
+        font-size: 9px;
+        padding: 4px 3px;
+      }
+
+      .section {
+        margin-top: 4px;
+      }
+
+      .section-title {
+        font-size: 9px;
+        padding: 4px 3px;
+      }
+
+      .label,
+      .value {
+        font-size: 9px;
+      }
+
+      .materials th,
+      .materials td {
+        font-size: 8px;
+        padding: 4px 2px;
+      }
+
+      .num {
+        width: 6%;
+      }
+
+      .name {
+        width: 42%;
+      }
+
+      .unit {
+        width: 12%;
+      }
+
+      .qty {
+        width: 16%;
+      }
+
+      .note {
+        width: 24%;
+      }
+
+      .summary,
+      .signature-title,
+      .signature-body,
+      .footer {
+        font-size: 9px;
+      }
+
+      .signature-body {
+        min-height: 64px;
+        padding: 6px 4px;
+      }
+
+      .stamp-image {
+        max-width: 78px;
+        max-height: 78px;
+      }
+
+      .signature-image {
+        max-width: 100px;
+        max-height: 55px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="status">
+    Открываю накладную…
+  </div>
+
+  <div id="error"></div>
+
+  <main id="document">
+
+    <div id="cancelBanner">
+      <span class="cancel-title">⚠ НАКЛАДНАЯ ОТМЕНЕНА</span>
+      <span class="cancel-details" id="cancelDetails"></span>
+    </div>
+
+    <!-- ШАПКА -->
+    <table>
+      <tr>
+        <td class="brand" rowspan="5">
+          СОS<br>
+          CONSTRUCTION<br>
+          ECOSYSTEM
+        </td>
+
+        <td class="title" colspan="2">
+          НАКЛАДНАЯ НА ПЕРЕМЕЩЕНИЕ МАТЕРИАЛОВ
+        </td>
+
+        <td class="qr-cell" rowspan="5">
+          <img id="qrImage"
+               class="qr-image"
+               alt="QR-код накладной">
+          <div class="qr-note">
+            QR электронной копии
+          </div>
+        </td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">№ накладной</td>
+        <td class="meta-value" id="invoiceNo"></td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">Дата</td>
+        <td class="meta-value" id="date"></td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">ID</td>
+        <td class="meta-value" id="docId"></td>
+      </tr>
+
+      <tr>
+        <td class="meta-label">Статус</td>
+        <td class="status-cell" id="invoiceStatus"></td>
+      </tr>
+    </table>
+
+
+    <!-- ПЕРЕМЕЩЕНИЕ -->
+    <table class="section">
+      <tr>
+        <td class="section-title" colspan="2">
+          ДАННЫЕ ПЕРЕМЕЩЕНИЯ
+        </td>
+      </tr>
+
+      <tr>
+        <td class="label">Тип операции</td>
+        <td class="value" id="operation"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Откуда</td>
+        <td class="value" id="from"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Куда</td>
+        <td class="value" id="to"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Дата погрузки</td>
+        <td class="value" id="loadingDate"></td>
+      </tr>
+    </table>
+
+
+    <!-- ТРАНСПОРТ -->
+    <table class="section" id="transportBlock">
+      <tr>
+        <td class="section-title" colspan="2">
+          ТРАНСПОРТ
+        </td>
+      </tr>
+
+      <tr>
+        <td class="label">Автомобиль</td>
+        <td class="value" id="vehicle"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Гос. номер</td>
+        <td class="value" id="regNo"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Водитель</td>
+        <td class="value" id="driver"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Телефон</td>
+        <td class="value" id="phone"></td>
+      </tr>
+    </table>
+
+
+    <!-- МАТЕРИАЛЫ -->
+    <table class="section materials">
+      <thead>
+        <tr>
+          <th class="num">№</th>
+          <th class="name">Наименование материала</th>
+          <th class="unit">Ед.</th>
+          <th class="qty">Количество</th>
+          <th class="note">Примечание</th>
+        </tr>
+      </thead>
+
+      <tbody id="materialsBody"></tbody>
+    </table>
+
+
+    <!-- ИТОГ -->
+    <table class="section">
+      <tr>
+        <td class="summary" id="positionCount"></td>
+        <td class="summary" id="summaryNumber"></td>
+      </tr>
+    </table>
+
+
+    <!-- ПОДПИСИ -->
+    <table class="section">
+      <tr>
+        <td class="signature-title">ОТПУСТИЛ / ПЕРЕДАЛ</td>
+      </tr>
+      <tr>
+        <td class="signature-body">
+          <div class="sender-signature-layout">
+            <div class="sender-signature-text" id="sender"></div>
+            <div class="sender-images" id="senderImages">
+              <img
+                id="senderSignatureImage"
+                class="sender-signature-image"
+                alt="Подпись"
+              >
+              <img
+                id="senderStampImage"
+                class="sender-stamp-image"
+                alt="Печать"
+              >
+            </div>
+          </div>
+
+          <div
+            id="senderRemoteSignatureBlock"
+            class="remote-signature-block"
+          >
+            <div class="remote-signature-content">
+              <div
+                id="senderRemoteSignatureMeta"
+                class="remote-signature-meta"
+              ></div>
+
+              <img
+                id="senderRemoteSignatureImage"
+                class="remote-signature-image"
+                alt="Электронная подпись отпустившего"
+              >
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <table class="section">
+      <tr>
+        <td class="signature-title">ПЕРЕМЕСТИЛ / ВОДИТЕЛЬ</td>
+      </tr>
+      <tr>
+        <td class="signature-body">
+          <div id="mover"></div>
+
+          <div
+            id="driverRemoteSignatureBlock"
+            class="remote-signature-block"
+          >
+            <div class="remote-signature-content">
+              <div
+                id="driverRemoteSignatureMeta"
+                class="remote-signature-meta"
+              ></div>
+
+              <img
+                id="driverRemoteSignatureImage"
+                class="remote-signature-image"
+                alt="Электронная подпись водителя"
+              >
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <table class="section">
+      <tr>
+        <td class="signature-title">ПОЛУЧИЛ</td>
+      </tr>
+      <tr>
+        <td class="signature-body">
+          <div id="receiver"></div>
+
+          <div
+            id="receiverRemoteSignatureBlock"
+            class="remote-signature-block"
+          >
+            <div class="remote-signature-content">
+              <div
+                id="receiverRemoteSignatureMeta"
+                class="remote-signature-meta"
+              ></div>
+
+              <img
+                id="receiverRemoteSignatureImage"
+                class="remote-signature-image"
+                alt="Электронная подпись получателя"
+              >
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <div class="footer">
+      СОS • Электронная копия накладной
+    </div>
+
+  </main>
+
+
+  <script>
+    // (Адрес API Google Apps Script)
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbwDeaPRSxOJC6AtNBkNYyWMYzczn3wROHMoU2oTEKBs6tCphP79evdPP-YNRitb-8oh/exec';
+
+    // (Получить ID накладной из QR-ссылки)
+    const VIEWER_BUILD = '20260915-6';
+    const params = new URLSearchParams(window.location.search);
+
+    if ((params.get('v') || '').trim() !== VIEWER_BUILD) {
+      params.set('v', VIEWER_BUILD);
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + '?' + params.toString()
+      );
+    }
+
+    const docId = (params.get('doc') || '').trim();
+    const autoPrint = (params.get('print') || '').trim() === '1';
+    // (Если ссылка открыта с &print=1 — после полной загрузки вызвать печать)
+
+    function setQrCode(docId) {
+      // (QR ведёт на обычный просмотр накладной, без автоматической печати)
+      const qr = document.getElementById('qrImage');
+
+      if (!docId) {
+        qr.removeAttribute('src');
+        qr.style.display = 'none';
+        return;
+      }
+
+      const viewerUrl =
+        window.location.origin +
+        window.location.pathname +
+        '?doc=' +
+        encodeURIComponent(docId) +
+        '&v=' +
+        encodeURIComponent(VIEWER_BUILD);
+
+      qr.src =
+        'https://quickchart.io/qr?size=240&margin=1&text=' +
+        encodeURIComponent(viewerUrl);
+
+      qr.style.display = 'block';
+    }
+
+    function setText(id, value) {
+      document.getElementById(id).textContent =
+        value == null ? '' : String(value);
+    }
+
+    function hasValue(value) {
+      return String(value == null ? '' : value).trim() !== '';
+    }
+
+    function setImage(id, dataUrl) {
+      const image = document.getElementById(id);
+
+      if (hasValue(dataUrl)) {
+        image.src = String(dataUrl);
+        image.style.display = 'block';
+      } else {
+        image.removeAttribute('src');
+        image.style.display = 'none';
+      }
+    }
+
+    function printAfterImagesLoaded() {
+      // (Дождаться загрузки видимых изображений перед окном печати)
+      const images = Array.from(document.images).filter(function(image) {
+        return image.src && image.style.display !== 'none';
+      });
+
+      const waits = images.map(function(image) {
+        if (image.complete) {
+          return Promise.resolve();
+        }
+
+        return new Promise(function(resolve) {
+          image.addEventListener('load', resolve, { once: true });
+          image.addEventListener('error', resolve, { once: true });
+        });
+      });
+
+      Promise.all(waits).then(function() {
+        setTimeout(function() {
+          window.focus();
+          window.print();
+        }, 300);
+      });
+    }
+
+    function setRemoteSignature(
+      roleKey,
+      signature,
+      fallbackImage,
+      fallbackName,
+      fallbackSignedAt
+    ) {
+      const block =
+        document.getElementById(
+          roleKey + 'RemoteSignatureBlock'
+        );
+
+      const meta =
+        document.getElementById(
+          roleKey + 'RemoteSignatureMeta'
+        );
+
+      const imageId =
+        roleKey + 'RemoteSignatureImage';
+
+      const data =
+        signature || {};
+
+      const signed =
+        Boolean(data.signed) ||
+        hasValue(fallbackImage) ||
+        hasValue(fallbackName);
+
+      if (!signed) {
+        block.style.display = 'none';
+        setImage(imageId, '');
+        meta.textContent = '';
+        return;
+      }
+
+      const signerName =
+        data.signerName ||
+        fallbackName ||
+        '';
+
+      const signedAt =
+        data.signedAt ||
+        fallbackSignedAt ||
+        '';
+
+      const imageDataUrl =
+        data.imageDataUrl ||
+        fallbackImage ||
+        '';
+
+      const lines = [
+        'ЭЛЕКТРОННО ПОДПИСАНО'
+      ];
+
+      if (hasValue(signerName)) {
+        lines.push(
+          'ФИО: ' + signerName
+        );
+      }
+
+      if (hasValue(signedAt)) {
+        lines.push(
+          'Дата: ' + signedAt
+        );
+      }
+
+      meta.textContent =
+        lines.join('\n');
+
+      setImage(
+        imageId,
+        imageDataUrl
+      );
+
+      block.style.display = 'block';
+    }
+
+
+    function showError(message) {
+      document.getElementById('status').style.display = 'none';
+
+      const error = document.getElementById('error');
+      error.textContent = message;
+      error.style.display = 'block';
+    }
+
+    // (Функция вызывается JSONP-ответом Apps Script)
+    function renderInvoice(response, allowPrint) {
+      if (!response || !response.ok || !response.data) {
+        showError(
+          response && response.error
+            ? response.error
+            : 'Не удалось получить данные накладной.'
+        );
+        return;
+      }
+
+      const data = response.data;
+
+      setText('invoiceNo', data.invoiceNo || '—');
+      setText('date', data.date || '');
+      setText('docId', data.docId || '');
+      setQrCode(data.docId || '');
+      setText('invoiceStatus', data.status || '');
+
+      const normalizedStatus = String(data.status || '').trim().toUpperCase();
+      const cancelBanner = document.getElementById('cancelBanner');
+      const invoiceStatusCell = document.getElementById('invoiceStatus');
+
+      if (normalizedStatus === 'ОТМЕНЕНА') {
+        cancelBanner.style.display = 'block';
+        invoiceStatusCell.classList.add('canceled');
+
+        const cancellation = data.cancellation || {};
+        const parts = [];
+
+        if (hasValue(cancellation.canceledAt)) {
+          parts.push('Дата отмены: ' + cancellation.canceledAt);
+        }
+
+        if (hasValue(cancellation.userName)) {
+          parts.push('Отменил: ' + cancellation.userName);
+        }
+
+        if (hasValue(cancellation.reason)) {
+          parts.push('Причина: ' + cancellation.reason);
+        }
+
+        setText('cancelDetails', parts.join(' • '));
+      } else {
+        cancelBanner.style.display = 'none';
+        invoiceStatusCell.classList.remove('canceled');
+        setText('cancelDetails', '');
+      }
+
+      setText('operation', data.operation || '');
+      setText('from', data.from || '');
+      setText('to', data.to || '');
+      setText('loadingDate', data.date || '');
+
+      setText('vehicle', data.vehicle || '');
+      setText('regNo', data.regNo || '');
+      setText('driver', data.driver || '');
+      setText('phone', data.phone || '');
+
+      const transportUsed =
+        hasValue(data.vehicle) ||
+        hasValue(data.regNo) ||
+        hasValue(data.driver) ||
+        hasValue(data.phone);
+
+      if (!transportUsed) {
+        document.getElementById('transportBlock').style.display = 'none';
+      }
+
+      const items = Array.isArray(data.materials)
+        ? data.materials
+        : [];
+
+      const tbody = document.getElementById('materialsBody');
+      tbody.textContent = '';
+
+      if (items.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+
+        td.colSpan = 5;
+        td.textContent = 'Материалы не указаны';
+        td.style.textAlign = 'center';
+
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        items.forEach(function(item, index) {
+          const tr = document.createElement('tr');
+
+          [
+            item.no || (index + 1),
+            item.name || '',
+            item.unit || '',
+            item.qty || '',
+            item.note || ''
+          ].forEach(function(value, columnIndex) {
+            const td = document.createElement('td');
+            td.textContent = String(value);
+
+            if (columnIndex === 0 ||
+                columnIndex === 2 ||
+                columnIndex === 3) {
+              td.style.textAlign = 'center';
+            }
+
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      setText(
+        'positionCount',
+        'Всего позиций: ' +
+        String(data.positionCount || items.length || 0)
+      );
+
+      setText(
+        'summaryNumber',
+        'Номер документа: ' +
+        String(data.invoiceNo || '—')
+      );
+
+      setText('sender', data.sender || '');
+      setText('mover', data.mover || '');
+      setText('receiver', data.receiver || '');
+
+      setImage(
+        'senderSignatureImage',
+        data.senderSignatureImage || ''
+      );
+
+      setImage(
+        'senderStampImage',
+        data.senderStampImage || ''
+      );
+
+      const remoteSignatures =
+        data.remoteSignatures || {};
+
+      setRemoteSignature(
+        'sender',
+        remoteSignatures.sender,
+        data.senderRemoteSignatureImage || '',
+        data.senderRemoteSignerName || '',
+        data.senderRemoteSignedAt || ''
+      );
+
+      setRemoteSignature(
+        'driver',
+        remoteSignatures.driver,
+        data.driverRemoteSignatureImage || '',
+        data.driverRemoteSignerName || '',
+        data.driverRemoteSignedAt || ''
+      );
+
+      setRemoteSignature(
+        'receiver',
+        remoteSignatures.receiver,
+        data.receiverRemoteSignatureImage || '',
+        data.receiverRemoteSignerName || '',
+        data.receiverRemoteSignedAt || ''
+      );
+
+      document.title =
+        'СОS — ' + String(data.invoiceNo || 'ТТН');
+
+      document.getElementById('status').style.display = 'none';
+      document.getElementById('document').style.display = 'block';
+
+      if (allowPrint && autoPrint) {
+        printAfterImagesLoaded();
+      }
+    }
+
+    let lightLoaded = false;
+    let signatureLoadStarted = false;
+    let signatureImagesLoaded = false;
+    let loadCycle = 0;
+
+    const JSONP_TIMEOUT_MS = 18000;
+    const SIGNATURE_JSONP_TIMEOUT_MS = 12000;
+    const LIGHT_RETRY_DELAYS_MS = [0, 2500, 7000, 15000];
+    const SIGNATURE_RETRY_DELAYS_MS = [150, 1200, 3500, 8000];
+
+    function setStatus(text) {
+      const status = document.getElementById('status');
+      status.textContent = text || 'Загрузка накладной...';
+      status.style.display = 'block';
+
+      const error = document.getElementById('error');
+      error.style.display = 'none';
+      error.textContent = '';
+    }
+
+    function showRetryError(message) {
+      document.getElementById('status').style.display = 'none';
+
+      const error = document.getElementById('error');
+      error.textContent = '';
+
+      const text = document.createElement('div');
+      text.textContent =
+        message ||
+        'Не удалось загрузить накладную. Проверьте интернет и повторите попытку.';
+      error.appendChild(text);
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = 'ПОВТОРИТЬ ЗАГРУЗКУ';
+      button.style.marginTop = '14px';
+      button.style.padding = '11px 16px';
+      button.style.border = '0';
+      button.style.borderRadius = '6px';
+      button.style.background = '#17365d';
+      button.style.color = '#ffffff';
+      button.style.fontWeight = 'bold';
+      button.style.fontSize = '14px';
+
+      button.addEventListener('click', function() {
+        loadInvoiceRobust();
+      });
+
+      error.appendChild(button);
+
+      const hint = document.createElement('div');
+      hint.style.marginTop = '12px';
+      hint.style.fontSize = '12px';
+      hint.style.lineHeight = '1.4';
+      hint.style.color = '#5a6370';
+      hint.textContent =
+        'Если ссылка открыта во встроенном окне QR-сканера, откройте её в Chrome или другом обычном браузере.';
+      error.appendChild(hint);
+
+      error.style.display = 'block';
+    }
+
+    function jsonpRequest(mode, cycle, attemptNumber) {
+      return new Promise(function(resolve, reject) {
+        const callbackName =
+          'sosQr_' +
+          String(Date.now()) +
+          '_' +
+          String(attemptNumber) +
+          '_' +
+          String(Math.floor(Math.random() * 1000000));
+
+        const script = document.createElement('script');
+        let finished = false;
+
+        function cleanup() {
+          if (finished) return;
+          finished = true;
+
+          clearTimeout(timer);
+
+          try {
+            delete window[callbackName];
+          } catch (ignored) {
+            window[callbackName] = undefined;
+          }
+
+          if (script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+        }
+
+        const timeoutMs =
+          mode === 'signatures'
+            ? SIGNATURE_JSONP_TIMEOUT_MS
+            : JSONP_TIMEOUT_MS;
+
+        const timer = setTimeout(function() {
+          cleanup();
+          reject(new Error('timeout'));
+        }, timeoutMs);
+
+        window[callbackName] = function(response) {
+          if (cycle !== loadCycle) {
+            cleanup();
+            return;
+          }
+
+          cleanup();
+          resolve(response);
+        };
+
+        script.onerror = function() {
+          cleanup();
+          reject(new Error('network'));
+        };
+
+        let modeQuery = '';
+
+        if (mode === 'light') {
+          modeQuery = '&light=1';
+        } else if (mode === 'signatures') {
+          modeQuery = '&sigimg=1';
+        }
+
+        script.src =
+          API_BASE +
+          '?doc=' + encodeURIComponent(docId) +
+          modeQuery +
+          '&callback=' + encodeURIComponent(callbackName) +
+          '&_=' + encodeURIComponent(
+            String(Date.now()) +
+            '_' +
+            String(attemptNumber)
+          );
+
+        script.async = true;
+        document.body.appendChild(script);
+      });
+    }
+
+    function applySignaturePayload(response) {
+      if (
+        !response ||
+        !response.ok ||
+        !response.remoteSignatures
+      ) {
+        return false;
+      }
+
+      const remoteSignatures =
+        response.remoteSignatures || {};
+
+      const sender =
+        remoteSignatures.sender || {};
+      const driver =
+        remoteSignatures.driver || {};
+      const receiver =
+        remoteSignatures.receiver || {};
+
+      setRemoteSignature(
+        'sender',
+        sender,
+        sender.imageDataUrl || '',
+        sender.signerName || '',
+        sender.signedAt || ''
+      );
+
+      setRemoteSignature(
+        'driver',
+        driver,
+        driver.imageDataUrl || '',
+        driver.signerName || '',
+        driver.signedAt || ''
+      );
+
+      setRemoteSignature(
+        'receiver',
+        receiver,
+        receiver.imageDataUrl || '',
+        receiver.signerName || '',
+        receiver.signedAt || ''
+      );
+
+      return true;
+    }
+
+    function loadSignatureImagesInBackground(cycle) {
+      if (
+        signatureLoadStarted ||
+        cycle !== loadCycle
+      ) {
+        return;
+      }
+
+      signatureLoadStarted = true;
+      let completed = false;
+
+      SIGNATURE_RETRY_DELAYS_MS.forEach(
+        function(delayMs, index) {
+          setTimeout(function() {
+            if (
+              completed ||
+              cycle !== loadCycle
+            ) {
+              return;
+            }
+
+            jsonpRequest(
+              'signatures',
+              cycle,
+              index + 1
+            )
+              .then(function(response) {
+                if (
+                  completed ||
+                  cycle !== loadCycle
+                ) {
+                  return;
+                }
+
+                if (applySignaturePayload(response)) {
+                  completed = true;
+                  signatureImagesLoaded = true;
+
+                  if (autoPrint) {
+                    printAfterImagesLoaded();
+                  }
+                }
+              })
+              .catch(function() {
+                // Основная ТТН уже показана.
+                // Повторные попытки PNG идут незаметно для пользователя.
+              });
+          }, delayMs);
+        }
+      );
+
+      // Печать не должна зависнуть навсегда, если PNG временно недоступен.
+      if (autoPrint) {
+        setTimeout(function() {
+          if (
+            !completed &&
+            cycle === loadCycle
+          ) {
+            printAfterImagesLoaded();
+          }
+        }, 18000);
+      }
+    }
+
+    function loadInvoiceRobust() {
+      if (!docId) {
+        showError('В ссылке отсутствует ID накладной.');
+        return;
+      }
+
+      loadCycle += 1;
+      const cycle = loadCycle;
+
+      lightLoaded = false;
+      signatureLoadStarted = false;
+      signatureImagesLoaded = false;
+
+      setStatus('Загрузка накладной...');
+
+      let completed = false;
+      let lastServerError = '';
+
+      LIGHT_RETRY_DELAYS_MS.forEach(function(delayMs, index) {
+        setTimeout(function() {
+          if (completed || cycle !== loadCycle) return;
+
+          setStatus(
+            index === 0
+              ? 'Загрузка накладной...'
+              : 'Повторное подключение к серверу СОS...'
+          );
+
+          jsonpRequest('light', cycle, index + 1)
+            .then(function(response) {
+              if (completed || cycle !== loadCycle) return;
+
+              if (response && response.ok && response.data) {
+                completed = true;
+                lightLoaded = true;
+
+                renderInvoice(response, false);
+
+                setTimeout(function() {
+                  loadSignatureImagesInBackground(cycle);
+                }, 120);
+
+                return;
+              }
+
+              if (response && response.error) {
+                lastServerError = String(response.error);
+              }
+            })
+            .catch(function() {
+              // Не показываем ошибку после первой неудачи:
+              // остальные попытки продолжаются автоматически.
+            });
+        }, delayMs);
+      });
+
+      setTimeout(function() {
+        if (completed || cycle !== loadCycle) return;
+
+        showRetryError(
+          lastServerError ||
+          'Не удалось устойчиво связаться с сервером СОS. Повторите загрузку.'
+        );
+      }, 38000);
+    }
+
+    window.addEventListener('online', function() {
+      if (!lightLoaded) {
+        loadInvoiceRobust();
+      }
+    });
+
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden && !lightLoaded) {
+        loadInvoiceRobust();
+      }
+    });
+
+    loadInvoiceRobust();
+
+  </script>
+
+</body>
+</html>
